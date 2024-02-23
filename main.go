@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
-	"io"
 	"os"
+	"path/filepath"
 
-	"github.com/charmbracelet/bubbles/table"
+	"github.com/joho/godotenv"
 	"github.com/kr/pretty"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -14,13 +16,10 @@ import (
 )
 
 func main() {
-}
-
-func run() {
 	flags, err := parseFlags()
 	check("parse flags", err)
 
-	id := newResourceId(flags.namespace, flags.pod)
+	id := newResourceId(flags.namespace, flags.pod, flags.container)
 
 	clientset, err := newClientset(flags.kubeconfig)
 	check("new clientset", err)
@@ -30,17 +29,11 @@ func run() {
 	logCh, err := getPodLogsStream(ctx, clientset, id)
 	check("get pd logs stream", err)
 
-	rowCh := make(chan table.Row)
+	for log := range logCh {
+		check("read log", log.err)
 
-	go func() {
-		defer close(rowCh)
-
-		for log := range logCh {
-			check("read log", log.err)
-
-			pretty.Println(log.v)
-		}
-	}()
+		pretty.Println(log.v)
+	}
 
 	// m := cli.NewModel(rowCh)
 
@@ -64,30 +57,51 @@ func newClientset(kubeconfig string) (*kubernetes.Clientset, error) {
 	return kubernetes.NewForConfig(config)
 }
 
-func newResourceId(namespace, pod string) resourceId {
+func newResourceId(namespace, pod, container string) resourceId {
 	return resourceId{
 		namespace: namespace,
 		pod:       pod,
+		container: container,
 	}
 }
 
 func parseFlags() (flags, error) {
+	godotenv.Load()
+
+	kubeconfig := os.Getenv("KUBECONFIG")
+
+	if kubeconfig == "" {
+		homedir, err := os.UserHomeDir()
+		if err != nil {
+			return flags{}, fmt.Errorf("get user home dir: %w", err)
+		}
+
+		kubeconfig = filepath.Join(homedir, ".kube", "config")
+	}
+
+	namespace := os.Getenv("NAMESPACE")
+	pod := os.Getenv("POD")
+	container := os.Getenv("CONTAINER")
+
 	return flags{
-		kubeconfig: os.Getenv("KUBECONFIG"),
-		namespace:  os.Getenv("NAMESPACE"),
-		pod:        os.Getenv("POD"),
+		kubeconfig: kubeconfig,
+		namespace:  namespace,
+		pod:        pod,
+		container:  container,
 	}, nil
 }
 
 type resourceId struct {
 	namespace string
 	pod       string
+	container string
 }
 
 type flags struct {
 	kubeconfig string
 	namespace  string
 	pod        string
+	container  string
 }
 
 type logResult struct {
@@ -95,8 +109,38 @@ type logResult struct {
 	err error
 }
 
+func ptr[V any](v V) *V {
+	return &v
+}
+
+func getPodLogs(ctx context.Context, clientset *kubernetes.Clientset, id resourceId) (string, error) {
+	body, err := clientset.
+		CoreV1().
+		Pods(id.namespace).
+		GetLogs(
+			id.pod,
+			&v1.PodLogOptions{
+				Container: id.container,
+			},
+		).
+		Do(ctx).
+		Raw()
+
+	return string(body), err
+}
+
 func getPodLogsStream(ctx context.Context, clientset *kubernetes.Clientset, id resourceId) (<-chan logResult, error) {
-	req := clientset.CoreV1().Pods(id.namespace).GetLogs(id.pod, &v1.PodLogOptions{})
+	req := clientset.
+		CoreV1().
+		Pods(id.namespace).
+		GetLogs(
+			id.pod,
+			&v1.PodLogOptions{
+				Container: id.container,
+				Follow:    true,
+				TailLines: ptr(int64(10)),
+			},
+		)
 
 	stream, err := req.Stream(ctx)
 	if err != nil {
@@ -105,22 +149,32 @@ func getPodLogsStream(ctx context.Context, clientset *kubernetes.Clientset, id r
 
 	logCh := make(chan logResult)
 
+	scanner := bufio.NewScanner(stream)
+
 	go func() {
 		defer close(logCh)
 
-		buf := make([]byte, 1024)
+		defer func() {
+			if err := stream.Close(); err != nil {
+				logCh <- logResult{err: fmt.Errorf("close stream: %w", err)}
+			}
+		}()
 
-		for {
-			n, err := stream.Read(buf)
-			if err == io.EOF {
+		for scanner.Scan() {
+			if err := scanner.Err(); err != nil {
+				logCh <- logResult{err: fmt.Errorf("scan error: %w", err)}
 				return
 			}
-			if err != nil {
-				logCh <- logResult{err: fmt.Errorf("read log: %w", err)}
+
+			b := scanner.Bytes()
+			v := map[string]any{}
+
+			if err := json.Unmarshal(b, &v); err != nil {
+				logCh <- logResult{err: fmt.Errorf("unmarshal log %q: %w", string(b), err)}
 				return
 			}
 
-			logCh <- logResult{v: map[string]any{"log": string(buf[:n])}}
+			logCh <- logResult{v: v}
 		}
 	}()
 

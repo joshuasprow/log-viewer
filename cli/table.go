@@ -14,10 +14,20 @@ type tableModel struct {
 	table.Model
 }
 
-func newTableModel(columns []table.Column, rows []table.Row) tableModel {
+type tableColumn struct {
+	key   string
+	width int
+}
+
+type tableRow struct {
+	key   string
+	value string
+	width int
+}
+
+func newTableModel(columns []table.Column) tableModel {
 	t := table.New(
 		table.WithColumns(columns),
-		table.WithRows(rows),
 		table.WithFocused(true),
 		table.WithHeight(7),
 		table.WithKeyMap(table.DefaultKeyMap()),
