@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/joshuasprow/log-viewer/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -25,7 +26,7 @@ type ResourceId struct {
 	Container string
 }
 
-func newResourceId(namespace, pod, container string) ResourceId {
+func NewResourceId(namespace, pod, container string) ResourceId {
 	return ResourceId{
 		Namespace: namespace,
 		Pod:       pod,
@@ -49,14 +50,16 @@ func getPodLogs(ctx context.Context, clientset *kubernetes.Clientset, id Resourc
 	return string(body), err
 }
 
-func GetPodLogsStream(
+func StreamPodLogs(
 	ctx context.Context,
 	clientset *kubernetes.Clientset,
 	id ResourceId,
-) (
-	<-chan logResult,
-	error,
+	logsCh chan<- pkg.Result[pkg.LogEntry],
 ) {
+	defer close(logsCh)
+
+	type R = pkg.Result[pkg.LogEntry]
+
 	req := clientset.
 		CoreV1().
 		Pods(id.Namespace).
@@ -65,39 +68,37 @@ func GetPodLogsStream(
 			&v1.PodLogOptions{
 				Container: id.Container,
 				Follow:    true,
-				TailLines: ptr(int64(10)),
+				TailLines: pkg.Ptr(int64(10)),
 			},
 		)
 
 	stream, err := req.Stream(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("get stream: %w", err)
+		logsCh <- R{Err: fmt.Errorf("get stream: %w", err)}
+		return
 	}
-
-	logCh := make(chan logResult)
-
-	scanner := bufio.NewScanner(stream)
-
-	go func() {
-		defer close(logCh)
-
-		defer func() {
-			if err := stream.Close(); err != nil {
-				logCh <- logResult{err: fmt.Errorf("close stream: %w", err)}
-			}
-		}()
-
-		for scanner.Scan() {
-			if err := scanner.Err(); err != nil {
-				logCh <- logResult{err: fmt.Errorf("scan error: %w", err)}
-				return
-			}
-
-			data := scanner.Bytes()
-
-			logCh <- logResult{v: v}
+	defer func() {
+		if err := stream.Close(); err != nil {
+			logsCh <- R{Err: fmt.Errorf("close stream: %w", err)}
 		}
 	}()
 
-	return logCh, nil
+	scanner := bufio.NewScanner(stream)
+
+	for scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			logsCh <- R{Err: fmt.Errorf("scan error: %w", err)}
+			return
+		}
+
+		data := scanner.Bytes()
+
+		v, err := pkg.UnmarshalLogEntry(data)
+		if err != nil {
+			logsCh <- R{Err: fmt.Errorf("unmarshal log entry %q: %w", string(data), err)}
+			return
+		}
+
+		logsCh <- R{V: v}
+	}
 }

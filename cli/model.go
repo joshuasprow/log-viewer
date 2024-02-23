@@ -5,7 +5,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/joshuasprow/log-viewer/k8s"
 	"github.com/joshuasprow/log-viewer/pkg"
+	"k8s.io/client-go/kubernetes"
 )
 
 type viewKey string
@@ -17,43 +19,28 @@ const (
 )
 
 type model struct {
-	quitting       bool
+	clientset      *kubernetes.Clientset
 	view           viewKey
 	namespaceModel tea.Model
 	namespace      string
 	podModel       tea.Model
 	pod            string
 	logsModel      tea.Model
-	logCh          <-chan TableRowItem
-	logModel       tea.Model
-	log            string
+	logsCh         chan pkg.LogEntry
 	err            error
 }
 
-func NewModel(rowCh <-chan TableRowItem) tea.Model {
+func NewModel(clientset *kubernetes.Clientset) tea.Model {
 	return model{
+		clientset:      clientset,
 		view:           namespaceKey,
 		namespaceModel: newListModel(pkg.Namespaces),
 		podModel:       newListModel([]string{}),
-		logsModel:      newTableModel(rowCh),
-		logCh:          rowCh,
-	}
-}
-
-func waitForLog(rowCh <-chan TableRowItem) tea.Cmd {
-	return func() tea.Msg {
-		row := <-rowCh
-
-		if row == (TableRowItem{}) {
-			return waitForLog(rowCh)
-		}
-
-		return row
 	}
 }
 
 func (m model) Init() tea.Cmd {
-	return waitForLog(m.logCh)
+	return nil
 }
 
 func getSelectedListItem(m tea.Model) (string, error) {
@@ -75,25 +62,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	m.namespaceModel, cmd = m.namespaceModel.Update(msg)
 	m.podModel, cmd = m.podModel.Update(msg)
-	m.logsModel, cmd = m.logsModel.Update(msg)
+
+	if m.logsModel != nil {
+		m.logsModel, cmd = m.logsModel.Update(msg)
+	}
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "q", "ctrl+c":
-			m.quitting = true
-
 			return m, tea.Quit
 		case "enter":
 			switch m.view {
 			case namespaceKey:
-				s, err := getSelectedListItem(m.namespaceModel)
+				namespace, err := getSelectedListItem(m.namespaceModel)
 				if err != nil {
 					m.err = fmt.Errorf("failed to get selected namespace: %w", err)
 					return m, nil
 				}
 
-				m.namespace = s
+				m.namespace = namespace
 
 				pods, ok := pkg.Pods[m.namespace]
 				if !ok {
@@ -105,16 +93,27 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				m.view = podKey
 			case podKey:
-				r, err := getSelectedListItem(m.podModel)
+				pod, err := getSelectedListItem(m.podModel)
 				if err != nil {
 					m.err = fmt.Errorf("failed to get selected pod: %w", err)
 					return m, nil
 				}
 
-				m.pod = r
-				m.logsModel = newTableModel(m.logCh)
+				if m.namespace == "" {
+					m.err = fmt.Errorf("no namespace selected")
+					return m, nil
+				}
 
+				if pod == "" {
+					m.err = fmt.Errorf("no pod selected")
+					return m, nil
+				}
+
+				m.pod = pod
 				m.view = logsKey
+				m.logsModel = newLogsModel(m.clientset, k8s.NewResourceId(m.namespace, m.pod, ""))
+
+				cmd = m.logsModel.Init()
 			}
 		case "esc":
 			switch m.view {
@@ -124,9 +123,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				m.view = namespaceKey
 			case logsKey:
-				m.log = ""
-				m.logsModel = newTableModel(m.logCh)
-
+				// todo: clean up logs stream and model
 				m.view = podKey
 			}
 		}

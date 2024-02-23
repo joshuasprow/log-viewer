@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,35 +8,17 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joho/godotenv"
 	"github.com/joshuasprow/log-viewer/cli"
+	"github.com/joshuasprow/log-viewer/k8s"
 )
 
 func main() {
 	flags, err := parseFlags()
 	check("parse flags", err)
 
-	id := newResourceId(flags.namespace, flags.pod, flags.container)
-
-	clientset, err := newClientset(flags.kubeconfig)
+	clientset, err := k8s.NewClientset(flags.kubeconfig)
 	check("new clientset", err)
 
-	ctx := context.Background()
-
-	logCh, err := getPodLogsStream(ctx, clientset, id)
-	check("get pd logs stream", err)
-
-	rowCh := make(chan cli.TableRowItem)
-
-	go func() {
-		defer close(rowCh)
-
-		for log := range logCh {
-			check("read log", log.err)
-
-			rowCh <- log.v
-		}
-	}()
-
-	m := cli.NewModel(rowCh)
+	m := cli.NewModel(clientset)
 
 	_, err = tea.NewProgram(m).Run()
 	check("run program", err)
