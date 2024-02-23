@@ -34,7 +34,7 @@ func NewModel(clientset *kubernetes.Clientset) tea.Model {
 	return model{
 		clientset:      clientset,
 		view:           namespaceKey,
-		namespaceModel: newListModel(pkg.Namespaces),
+		namespaceModel: newNamespacesModel(),
 		podModel:       newListModel([]string{}),
 	}
 }
@@ -44,9 +44,15 @@ func (m model) Init() tea.Cmd {
 }
 
 func getSelectedListItem(m tea.Model) (string, error) {
-	lm, ok := m.(listModel)
-	if !ok {
-		return "", fmt.Errorf("expected model to be a listModel, but got %T", m)
+	var lm listModel
+
+	switch t := m.(type) {
+	case namespacesModel:
+		lm = t.model.(listModel)
+	case listModel:
+		lm = t
+	default:
+		return "", fmt.Errorf("unexpected model type: %T", m)
 	}
 
 	i, ok := lm.l.SelectedItem().(listItem)
@@ -57,15 +63,21 @@ func getSelectedListItem(m tea.Model) (string, error) {
 	return string(i), nil
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
+func (m model) updateViews(msg tea.Msg) tea.Cmd {
+	_, nCmd := m.namespaceModel.Update(msg)
+	_, pCmd := m.podModel.Update(msg)
 
-	m.namespaceModel, cmd = m.namespaceModel.Update(msg)
-	m.podModel, cmd = m.podModel.Update(msg)
+	var lCmd tea.Cmd
 
 	if m.logsModel != nil {
-		m.logsModel, cmd = m.logsModel.Update(msg)
+		_, lCmd = m.logsModel.Update(msg)
 	}
+
+	return tea.Batch(nCmd, pCmd, lCmd)
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	cmd := m.updateViews(msg)
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:

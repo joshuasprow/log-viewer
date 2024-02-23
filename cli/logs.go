@@ -144,14 +144,7 @@ func (m logsModel) Init() tea.Cmd {
 func (m logsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case error:
-		if msg != nil {
-			panic(fmt.Errorf("update logs model: %w", msg))
-		}
-	case tea.KeyMsg:
-		switch keypress := msg.String(); keypress {
-		case "ctrl+c", "q":
-			return m, tea.Quit
-		}
+		panic(fmt.Errorf("logsModel.Update: %w", msg))
 	case pkg.LogEntry:
 		rows := m.model.Rows()
 		row := []string{msg.Level, msg.Time, msg.Msg}
@@ -172,7 +165,6 @@ func (m logsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	m.model, cmd = m.model.Update(msg)
-
 	return m, cmd
 }
 
