@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"fmt"
+
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -22,12 +24,10 @@ type tableColumn struct {
 type tableRow struct {
 	key   string
 	value string
-	width int
 }
 
-func newTableModel(columns []table.Column) tableModel {
+func newTableModel() tableModel {
 	t := table.New(
-		table.WithColumns(columns),
 		table.WithFocused(true),
 		table.WithHeight(7),
 		table.WithKeyMap(table.DefaultKeyMap()),
@@ -46,14 +46,55 @@ func newTableModel(columns []table.Column) tableModel {
 	t.SetStyles(s)
 
 	return tableModel{t}
-
 }
 
 func (m tableModel) Init() tea.Cmd { return nil }
 
+type TableRowItem struct {
+	Title string
+	Value string
+}
+
+type tableRowMsg []TableRowItem
+
+func (m tableRowMsg) columns() []table.Column {
+	c := []table.Column{}
+
+	for _, item := range m {
+		c = append(c, table.Column{
+			Title: item.Title,
+			Width: len(fmt.Sprintf("%v", item.Title)),
+		})
+	}
+
+	return c
+}
+
+func (m tableRowMsg) row() table.Row {
+	r := table.Row{}
+
+	for _, v := range m {
+		r = append(r, fmt.Sprintf("%v", v))
+	}
+
+	return r
+}
+
 func (m tableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.Model, cmd = m.Model.Update(msg)
+
+	switch msg := msg.(type) {
+	case tableRowMsg:
+		rows := m.Model.Rows()
+
+		if len(rows) == 0 {
+			m.Model.SetColumns(msg.columns())
+		}
+
+		m.Model.SetRows(append(rows, msg.row()))
+	}
+
 	return m, cmd
 }
 

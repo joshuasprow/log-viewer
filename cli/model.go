@@ -3,7 +3,6 @@ package cli
 import (
 	"fmt"
 
-	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -30,28 +29,28 @@ type model struct {
 	resourceModel tea.Model
 	resource      string
 	viewerModel   tea.Model
+	viewerRowCh   <-chan []TableRowItem
 	err           error
 }
 
-func NewModel(rowCh chan<- table.Row) tea.Model {
+func NewModel(rowCh <-chan []TableRowItem) tea.Model {
 	return model{
 		view:          sourceKey,
 		sourceModel:   newListModel([]string{"s-1", "s-2", "s-3"}),
 		resourceModel: newListModel([]string{"r-1", "r-2", "r-3"}),
-		viewerModel: newTableModel(
-			[]table.Column{
-				{Title: "Rank", Width: 4},
-				{Title: "City", Width: 10},
-				{Title: "Country", Width: 10},
-				{Title: "Population", Width: 10},
-			},
-			[]table.Row{},
-		),
+		viewerModel:   newTableModel(),
+		viewerRowCh:   rowCh,
+	}
+}
+
+func waitForViewerRow(rowCh <-chan []TableRowItem) tea.Cmd {
+	return func() tea.Msg {
+		return tableRowMsg(<-rowCh)
 	}
 }
 
 func (m model) Init() tea.Cmd {
-	return nil
+	return waitForViewerRow(m.viewerRowCh)
 }
 
 func getSelectedListItem(m tea.Model) (string, error) {
@@ -109,7 +108,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.resource = ""
 			case viewerKey:
 				m.view = resourceKey
-				m.viewerModel = newTableModel([]table.Column{}, []table.Row{})
+				m.viewerModel = newTableModel()
 			}
 		}
 	}

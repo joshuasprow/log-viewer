@@ -8,8 +8,9 @@ import (
 	"os"
 	"path/filepath"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joho/godotenv"
-	"github.com/kr/pretty"
+	"github.com/joshuasprow/log-viewer/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -29,16 +30,22 @@ func main() {
 	logCh, err := getPodLogsStream(ctx, clientset, id)
 	check("get pd logs stream", err)
 
-	for log := range logCh {
-		check("read log", log.err)
+	rowCh := make(chan TableRowItem)
 
-		pretty.Println(log.v)
-	}
+	go func() {
+		defer close(rowCh)
 
-	// m := cli.NewModel(rowCh)
+		for log := range logCh {
+			check("read log", log.err)
 
-	// _, err = tea.NewProgram(m).Run()
-	// check("run program", err)
+			rowCh <- log.v
+		}
+	}()
+
+	m := newTableModel(rowCh)
+
+	_, err = tea.NewProgram(m).Run()
+	check("run program", err)
 }
 
 func check(msg string, err error) {
@@ -80,6 +87,11 @@ func parseFlags() (flags, error) {
 	}
 
 	namespace := os.Getenv("NAMESPACE")
+
+	if namespace == "" {
+		namespace = "default"
+	}
+
 	pod := os.Getenv("POD")
 	container := os.Getenv("CONTAINER")
 
@@ -105,7 +117,7 @@ type flags struct {
 }
 
 type logResult struct {
-	v   map[string]any
+	v   TableRowItem
 	err error
 }
 
@@ -166,12 +178,32 @@ func getPodLogsStream(ctx context.Context, clientset *kubernetes.Clientset, id r
 				return
 			}
 
-			b := scanner.Bytes()
-			v := map[string]any{}
+			raw := scanner.Bytes()
 
-			if err := json.Unmarshal(b, &v); err != nil {
-				logCh <- logResult{err: fmt.Errorf("unmarshal log %q: %w", string(b), err)}
+			om := pkg.NewOrderedMap()
+
+			if err := json.Unmarshal(raw, &om); err != nil {
+				logCh <- logResult{err: fmt.Errorf("new ordered map from json %q: %w", string(raw), err)}
 				return
+			}
+
+			it := om.EntriesIter()
+			v := TableRowItem{Raw: string(raw)}
+
+			for {
+				entry, ok := it()
+				if !ok {
+					break
+				}
+
+				switch entry.Key {
+				case "level":
+					v.Level = fmt.Sprintf("%v", entry.Value)
+				case "time":
+					v.Time = fmt.Sprintf("%v", entry.Value)
+				case "msg":
+					v.Msg = fmt.Sprintf("%v", entry.Value)
+				}
 			}
 
 			logCh <- logResult{v: v}
