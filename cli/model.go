@@ -34,7 +34,7 @@ func NewModel(clientset *kubernetes.Clientset) tea.Model {
 	return model{
 		clientset:      clientset,
 		view:           namespaceKey,
-		namespaceModel: newNamespacesModel(),
+		namespaceModel: newNamespacesModel(clientset),
 		podModel:       newListModel([]string{}),
 	}
 }
@@ -63,23 +63,31 @@ func getSelectedListItem(m tea.Model) (string, error) {
 	return string(i), nil
 }
 
-func (m model) updateViews(msg tea.Msg) tea.Cmd {
-	_, nCmd := m.namespaceModel.Update(msg)
-	_, pCmd := m.podModel.Update(msg)
+func (m model) updateViews(msg tea.Msg) (model, tea.Cmd) {
+	var nCmd tea.Cmd
+	m.namespaceModel, nCmd = m.namespaceModel.Update(msg)
+
+	var pCmd tea.Cmd
+	m.podModel, pCmd = m.podModel.Update(msg)
 
 	var lCmd tea.Cmd
-
 	if m.logsModel != nil {
-		_, lCmd = m.logsModel.Update(msg)
+		m.logsModel, lCmd = m.logsModel.Update(msg)
 	}
 
-	return tea.Batch(nCmd, pCmd, lCmd)
+	return m, tea.Batch(nCmd, pCmd, lCmd)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	cmd := m.updateViews(msg)
+	if m.err != nil {
+		panic(fmt.Errorf("model.err: %w", m.err))
+	}
+
+	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
+	case error:
+		panic(fmt.Errorf("model.Update: %w", msg))
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "q", "ctrl+c":
@@ -102,7 +110,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				m.podModel = newListModel(pods)
-
 				m.view = podKey
 			case podKey:
 				pod, err := getSelectedListItem(m.podModel)
@@ -141,9 +148,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	if m.err != nil {
-		panic(m.err)
-	}
+	m, cmd = m.updateViews(msg)
 
 	return m, cmd
 }
