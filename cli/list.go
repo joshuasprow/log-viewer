@@ -1,6 +1,10 @@
 package cli
 
 import (
+	"fmt"
+	"io"
+	"strings"
+
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -19,9 +23,28 @@ var (
 
 type listItem string
 
-func (i listItem) Title() string       { return string(i) }
-func (i listItem) Description() string { return string(i) }
 func (i listItem) FilterValue() string { return string(i) }
+
+type listItemDelegate struct{}
+
+func (d listItemDelegate) Height() int                             { return 1 }
+func (d listItemDelegate) Spacing() int                            { return 0 }
+func (d listItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+func (d listItemDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
+	i, ok := item.(listItem)
+	if !ok {
+		return
+	}
+
+	fn := listItemStyle.Render
+	if index == m.Index() {
+		fn = func(s ...string) string {
+			return selectedItemStyle.Render("> " + strings.Join(s, " "))
+		}
+	}
+
+	fmt.Fprint(w, fn(i.FilterValue()))
+}
 
 type listModel struct {
 	l list.Model
@@ -34,7 +57,7 @@ func newListModel(initialItems []string) listModel {
 		items = append(items, listItem(i))
 	}
 
-	l := list.New(items, list.NewDefaultDelegate(), defaultListWidth, defaultListHeight)
+	l := list.New(items, listItemDelegate{}, defaultListWidth, defaultListHeight)
 	l.SetFilteringEnabled(false)
 	l.SetShowStatusBar(false)
 	l.SetShowTitle(false)

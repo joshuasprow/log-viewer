@@ -10,6 +10,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joho/godotenv"
+	"github.com/joshuasprow/log-viewer/cli"
 	"github.com/joshuasprow/log-viewer/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -30,7 +31,7 @@ func main() {
 	logCh, err := getPodLogsStream(ctx, clientset, id)
 	check("get pd logs stream", err)
 
-	rowCh := make(chan TableRowItem)
+	rowCh := make(chan cli.TableRowItem)
 
 	go func() {
 		defer close(rowCh)
@@ -42,7 +43,7 @@ func main() {
 		}
 	}()
 
-	m := newTableModel(rowCh)
+	m := cli.NewModel(rowCh)
 
 	_, err = tea.NewProgram(m).Run()
 	check("run program", err)
@@ -117,7 +118,7 @@ type flags struct {
 }
 
 type logResult struct {
-	v   TableRowItem
+	v   cli.TableRowItem
 	err error
 }
 
@@ -188,7 +189,7 @@ func getPodLogsStream(ctx context.Context, clientset *kubernetes.Clientset, id r
 			}
 
 			it := om.EntriesIter()
-			v := TableRowItem{Raw: string(raw)}
+			v := cli.TableRowItem{Raw: string(raw)}
 
 			for {
 				entry, ok := it()

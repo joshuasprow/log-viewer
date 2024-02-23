@@ -1,8 +1,6 @@
 package cli
 
 import (
-	"fmt"
-
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -13,21 +11,30 @@ var baseStyle = lipgloss.NewStyle().
 	BorderForeground(lipgloss.Color("240"))
 
 type tableModel struct {
-	table.Model
+	model table.Model
+	cols  []table.Column
+	rowCh <-chan TableRowItem
 }
 
-type tableColumn struct {
-	key   string
-	width int
+type TableRowItem struct {
+	Level string
+	Time  string
+	Msg   string
+	Raw   string
 }
 
-type tableRow struct {
-	key   string
-	value string
-}
+func newTableModel(rowCh <-chan TableRowItem) tableModel {
+	cols := []table.Column{}
 
-func newTableModel() tableModel {
+	for _, title := range []string{"level", "time", "message"} {
+		cols = append(cols, table.Column{
+			Title: title,
+			Width: len(title),
+		})
+	}
+
 	t := table.New(
+		table.WithColumns(cols),
 		table.WithFocused(true),
 		table.WithHeight(7),
 		table.WithKeyMap(table.DefaultKeyMap()),
@@ -43,61 +50,64 @@ func newTableModel() tableModel {
 		Foreground(lipgloss.Color("229")).
 		Background(lipgloss.Color("57")).
 		Bold(false)
+
 	t.SetStyles(s)
 
-	return tableModel{t}
-}
-
-func (m tableModel) Init() tea.Cmd { return nil }
-
-type TableRowItem struct {
-	Title string
-	Value string
-}
-
-type tableRowMsg []TableRowItem
-
-func (m tableRowMsg) columns() []table.Column {
-	c := []table.Column{}
-
-	for _, item := range m {
-		c = append(c, table.Column{
-			Title: item.Title,
-			Width: len(fmt.Sprintf("%v", item.Title)),
-		})
+	return tableModel{
+		model: t,
+		cols:  cols,
+		rowCh: rowCh,
 	}
-
-	return c
 }
 
-func (m tableRowMsg) row() table.Row {
-	r := table.Row{}
+func waitForRowMsg(rowCh <-chan TableRowItem) tea.Cmd {
+	return func() tea.Msg {
+		row := <-rowCh
 
-	for _, v := range m {
-		r = append(r, fmt.Sprintf("%v", v))
+		if row == (TableRowItem{}) {
+			return nil
+		}
+
+		return row
 	}
+}
 
-	return r
+func (m tableModel) Init() tea.Cmd {
+	return waitForRowMsg(m.rowCh)
 }
 
 func (m tableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-	m.Model, cmd = m.Model.Update(msg)
 
 	switch msg := msg.(type) {
-	case tableRowMsg:
-		rows := m.Model.Rows()
+	case tea.KeyMsg:
+		switch keypress := msg.String(); keypress {
+		case "ctrl+c", "q":
+			return m, tea.Quit
+		}
+	case TableRowItem:
+		rows := m.model.Rows()
+		row := []string{msg.Level, msg.Time, msg.Msg}
 
-		if len(rows) == 0 {
-			m.Model.SetColumns(msg.columns())
+		for i := range m.cols {
+			if len(row[i]) > m.cols[i].Width {
+				m.cols[i].Width = len(row[i])
+			}
 		}
 
-		m.Model.SetRows(append(rows, msg.row()))
+		m.model.SetColumns(m.cols)
+		m.model.SetRows(append(rows, row))
+
+		m.model.GotoBottom()
+
+		return m, waitForRowMsg(m.rowCh)
 	}
+
+	var cmd tea.Cmd
+	m.model, cmd = m.model.Update(msg)
 
 	return m, cmd
 }
 
 func (m tableModel) View() string {
-	return m.Model.View()
+	return m.model.View()
 }

@@ -15,12 +15,6 @@ const (
 	viewerKey   viewKey = "viewer"
 )
 
-var views = map[viewKey]tea.Model{
-	sourceKey:   newListModel([]string{"s-1", "s-2", "s-3"}),
-	resourceKey: newListModel([]string{"r-1", "r-2", "r-3"}),
-	viewerKey:   newTableModel(),
-}
-
 type model struct {
 	quitting      bool
 	view          viewKey
@@ -29,23 +23,29 @@ type model struct {
 	resourceModel tea.Model
 	resource      string
 	viewerModel   tea.Model
-	viewerRowCh   <-chan []TableRowItem
+	viewerRowCh   <-chan TableRowItem
 	err           error
 }
 
-func NewModel(rowCh <-chan []TableRowItem) tea.Model {
+func NewModel(rowCh <-chan TableRowItem) tea.Model {
 	return model{
 		view:          sourceKey,
 		sourceModel:   newListModel([]string{"s-1", "s-2", "s-3"}),
 		resourceModel: newListModel([]string{"r-1", "r-2", "r-3"}),
-		viewerModel:   newTableModel(),
+		viewerModel:   newTableModel(rowCh),
 		viewerRowCh:   rowCh,
 	}
 }
 
-func waitForViewerRow(rowCh <-chan []TableRowItem) tea.Cmd {
+func waitForViewerRow(rowCh <-chan TableRowItem) tea.Cmd {
 	return func() tea.Msg {
-		return tableRowMsg(<-rowCh)
+		row := <-rowCh
+
+		if row == (TableRowItem{}) {
+			return waitForViewerRow(rowCh)
+		}
+
+		return row
 	}
 }
 
@@ -108,7 +108,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.resource = ""
 			case viewerKey:
 				m.view = resourceKey
-				m.viewerModel = newTableModel()
+				m.viewerModel = newTableModel(m.viewerRowCh)
 			}
 		}
 	}
