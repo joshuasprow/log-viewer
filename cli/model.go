@@ -5,44 +5,47 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/joshuasprow/log-viewer/pkg"
 )
 
 type viewKey string
 
 const (
-	sourceKey   viewKey = "source"
-	resourceKey viewKey = "resource"
-	viewerKey   viewKey = "viewer"
+	namespaceKey viewKey = "namespace"
+	podKey       viewKey = "pod"
+	logsKey      viewKey = "logs"
 )
 
 type model struct {
-	quitting      bool
-	view          viewKey
-	sourceModel   tea.Model
-	source        string
-	resourceModel tea.Model
-	resource      string
-	viewerModel   tea.Model
-	viewerRowCh   <-chan TableRowItem
-	err           error
+	quitting       bool
+	view           viewKey
+	namespaceModel tea.Model
+	namespace      string
+	podModel       tea.Model
+	pod            string
+	logsModel      tea.Model
+	logCh          <-chan TableRowItem
+	logModel       tea.Model
+	log            string
+	err            error
 }
 
 func NewModel(rowCh <-chan TableRowItem) tea.Model {
 	return model{
-		view:          sourceKey,
-		sourceModel:   newListModel([]string{"s-1", "s-2", "s-3"}),
-		resourceModel: newListModel([]string{"r-1", "r-2", "r-3"}),
-		viewerModel:   newTableModel(rowCh),
-		viewerRowCh:   rowCh,
+		view:           namespaceKey,
+		namespaceModel: newListModel(pkg.Namespaces),
+		podModel:       newListModel([]string{}),
+		logsModel:      newTableModel(rowCh),
+		logCh:          rowCh,
 	}
 }
 
-func waitForViewerRow(rowCh <-chan TableRowItem) tea.Cmd {
+func waitForLog(rowCh <-chan TableRowItem) tea.Cmd {
 	return func() tea.Msg {
 		row := <-rowCh
 
 		if row == (TableRowItem{}) {
-			return waitForViewerRow(rowCh)
+			return waitForLog(rowCh)
 		}
 
 		return row
@@ -50,7 +53,7 @@ func waitForViewerRow(rowCh <-chan TableRowItem) tea.Cmd {
 }
 
 func (m model) Init() tea.Cmd {
-	return waitForViewerRow(m.viewerRowCh)
+	return waitForLog(m.logCh)
 }
 
 func getSelectedListItem(m tea.Model) (string, error) {
@@ -70,9 +73,9 @@ func getSelectedListItem(m tea.Model) (string, error) {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
-	m.sourceModel, cmd = m.sourceModel.Update(msg)
-	m.resourceModel, cmd = m.resourceModel.Update(msg)
-	m.viewerModel, cmd = m.viewerModel.Update(msg)
+	m.namespaceModel, cmd = m.namespaceModel.Update(msg)
+	m.podModel, cmd = m.podModel.Update(msg)
+	m.logsModel, cmd = m.logsModel.Update(msg)
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -83,32 +86,48 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "enter":
 			switch m.view {
-			case sourceKey:
-				s, err := getSelectedListItem(m.sourceModel)
+			case namespaceKey:
+				s, err := getSelectedListItem(m.namespaceModel)
 				if err != nil {
-					m.err = err
+					m.err = fmt.Errorf("failed to get selected namespace: %w", err)
 					return m, nil
 				}
 
-				m.source = s
-				m.view = resourceKey
-			case resourceKey:
-				r, err := getSelectedListItem(m.resourceModel)
-				if err != nil {
-					m.err = err
-				} else {
-					m.resource = r
-					m.view = viewerKey
+				m.namespace = s
+
+				pods, ok := pkg.Pods[m.namespace]
+				if !ok {
+					m.err = fmt.Errorf("no pods found in namespace %s", m.namespace)
+					return m, nil
 				}
+
+				m.podModel = newListModel(pods)
+
+				m.view = podKey
+			case podKey:
+				r, err := getSelectedListItem(m.podModel)
+				if err != nil {
+					m.err = fmt.Errorf("failed to get selected pod: %w", err)
+					return m, nil
+				}
+
+				m.pod = r
+				m.logsModel = newTableModel(m.logCh)
+
+				m.view = logsKey
 			}
 		case "esc":
 			switch m.view {
-			case resourceKey:
-				m.view = sourceKey
-				m.resource = ""
-			case viewerKey:
-				m.view = resourceKey
-				m.viewerModel = newTableModel(m.viewerRowCh)
+			case podKey:
+				m.pod = ""
+				m.podModel = newListModel([]string{})
+
+				m.view = namespaceKey
+			case logsKey:
+				m.log = ""
+				m.logsModel = newTableModel(m.logCh)
+
+				m.view = podKey
 			}
 		}
 	}
@@ -124,12 +143,12 @@ func (m model) View() string {
 	body := ""
 
 	switch m.view {
-	case sourceKey:
-		body = m.sourceModel.View()
-	case resourceKey:
-		body = m.resourceModel.View()
-	case viewerKey:
-		body = m.viewerModel.View()
+	case namespaceKey:
+		body = m.namespaceModel.View()
+	case podKey:
+		body = m.podModel.View()
+	case logsKey:
+		body = m.logsModel.View()
 	default:
 		m.err = fmt.Errorf("unknown view key: %q", m.view)
 
@@ -145,8 +164,8 @@ func (m model) View() string {
 		lipgloss.JoinHorizontal(
 			lipgloss.Left,
 			titlePart("view", string(m.view)),
-			titlePart("source", m.source),
-			titlePart("resource", m.resource),
+			titlePart("source", m.namespace),
+			titlePart("resource", m.pod),
 		),
 		body,
 	)

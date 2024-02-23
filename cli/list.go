@@ -49,7 +49,7 @@ func (d listItemDelegate) Render(w io.Writer, m list.Model, index int, item list
 	fn := listItemStyles.normal.Render
 	if index == m.Index() {
 		fn = func(s ...string) string {
-			return listItemStyles.normal.Render("> " + strings.Join(s, " "))
+			return listItemStyles.selected.Render("> " + strings.Join(s, " "))
 		}
 	}
 
