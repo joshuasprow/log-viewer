@@ -12,13 +12,6 @@ type tableModel struct {
 	rowCh <-chan TableRowItem
 }
 
-type TableRowItem struct {
-	Level string
-	Time  string
-	Msg   string
-	Raw   string
-}
-
 func newTableModel(rowCh <-chan TableRowItem) tableModel {
 	cols := []table.Column{}
 
