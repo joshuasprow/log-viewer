@@ -1,7 +1,7 @@
 package main
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,36 +9,12 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joho/godotenv"
-	"github.com/joshuasprow/log-viewer/k8s"
 )
 
 func main() {
-	flags, err := parseFlags()
-	check("parse flags", err)
-
-	clientset, err := k8s.NewClientset(flags.kubeconfig)
-	check("new clientset", err)
-
 	p := tea.NewProgram(newModel())
 
-	go func() {
-		ctx := context.Background()
-
-		namespaces, err := k8s.GetNamespaces(ctx, clientset)
-		check("get namespaces", err)
-
-		p.Send(namespacesMessage(namespaces))
-
-		if len(namespaces) == 0 {
-			return
-		}
-		pods, err := k8s.GetPods(ctx, clientset, namespaces[0])
-		check("get pods", err)
-
-		p.Send(podsMessage(pods))
-	}()
-
-	_, err = p.Run()
+	_, err := p.Run()
 	check("run program", err)
 }
 
@@ -129,15 +105,31 @@ func (m model) View() string {
 }
 
 type podData struct {
-	name string
-	logs []string
+	Name string   `json:"name"`
+	Logs []string `json:"logs"`
 }
 
 type namespaceData struct {
-	name string
-	pods string
+	Name string `json:"name"`
+	Pods string `json:"pods"`
 }
 
 type modelData struct {
 	namespaces []namespaceData
+}
+
+func readModelData() (modelData, error) {
+	d, err := os.ReadFile("tmp/data.json")
+	if err != nil {
+		return modelData{}, fmt.Errorf("read file: %w", err)
+	}
+
+	namespaces := []namespaceData{}
+
+	err = json.Unmarshal(d, &namespaces)
+	if err != nil {
+		return modelData{}, fmt.Errorf("unmarshal data: %w", err)
+	}
+
+	return modelData{namespaces: namespaces}, nil
 }

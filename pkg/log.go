@@ -6,10 +6,10 @@ import (
 )
 
 type LogEntry struct {
-	Level string
-	Time  string
-	Msg   string
-	Raw   string
+	Level string `json:"level"`
+	Time  string `json:"time"`
+	Msg   string `json:"msg"`
+	Raw   string `json:"-"`
 }
 
 func UnmarshalLogEntry(data []byte) (LogEntry, error) {
