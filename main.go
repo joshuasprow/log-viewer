@@ -6,15 +6,17 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joho/godotenv"
 )
 
 func main() {
-	p := tea.NewProgram(newModel())
+	d, err := readModelData()
+	check("read model data", err)
 
-	_, err := p.Run()
+	p := tea.NewProgram(newModel(d))
+
+	_, err = p.Run()
 	check("run program", err)
 }
 
@@ -46,72 +48,14 @@ func parseFlags() (flags, error) {
 	return flags{kubeconfig: kubeconfig}, nil
 }
 
-type namespacesMessage []string
-type podsMessage []string
-
-type model struct {
-	model table.Model
-	data  modelData
-}
-
-func newModel() tea.Model {
-	t := table.New(
-		table.WithFocused(true),
-		table.WithKeyMap(table.DefaultKeyMap()),
-	)
-
-	t.SetColumns([]table.Column{
-		{Title: "kind", Width: 12},
-		{Title: "value", Width: 20},
-	})
-
-	t.SetStyles(table.DefaultStyles())
-
-	return model{model: t}
-}
-
-func (m model) Init() tea.Cmd { return nil }
-
-func toRows(kind string, values []string) []table.Row {
-	rows := []table.Row{}
-
-	for _, value := range values {
-		rows = append(rows, table.Row{kind, value})
-	}
-
-	return rows
-}
-
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch keypress := msg.String(); keypress {
-		case "q", "ctrl+c":
-			return m, tea.Quit
-		}
-	case namespacesMessage:
-		m.model.SetRows(append(m.model.Rows(), toRows("namespace", msg)...))
-	case podsMessage:
-		m.model.SetRows(append(m.model.Rows(), toRows("pod", msg)...))
-	}
-
-	var cmd tea.Cmd
-	m.model, cmd = m.model.Update(msg)
-	return m, cmd
-}
-
-func (m model) View() string {
-	return m.model.View()
-}
-
 type podData struct {
 	Name string   `json:"name"`
 	Logs []string `json:"logs"`
 }
 
 type namespaceData struct {
-	Name string `json:"name"`
-	Pods string `json:"pods"`
+	Name string    `json:"name"`
+	Pods []podData `json:"pods"`
 }
 
 type modelData struct {
@@ -132,4 +76,30 @@ func readModelData() (modelData, error) {
 	}
 
 	return modelData{namespaces: namespaces}, nil
+}
+
+type model struct {
+	data modelData
+}
+
+func newModel(data modelData) model {
+	return model{data: data}
+}
+
+func (m model) Init() tea.Cmd { return nil }
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch keypress := msg.String(); keypress {
+		case "q", "ctrl+c":
+			return model{}, tea.Quit
+		}
+	}
+
+	return model{}, nil
+}
+
+func (m model) View() string {
+	return "hello"
 }
