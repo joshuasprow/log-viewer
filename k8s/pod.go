@@ -3,7 +3,7 @@ package k8s
 import (
 	"context"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -15,7 +15,7 @@ func GetPods(
 	[]string,
 	error,
 ) {
-	list, err := clientset.CoreV1().Pods(namespace).List(ctx, v1.ListOptions{})
+	list, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

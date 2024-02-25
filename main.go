@@ -75,6 +75,7 @@ type podsMessage []string
 
 type model struct {
 	model table.Model
+	data  modelData
 }
 
 func newModel() tea.Model {
@@ -125,4 +126,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	return m.model.View()
+}
+
+type podData struct {
+	name string
+	logs []string
+}
+
+type namespaceData struct {
+	name string
+	pods string
+}
+
+type modelData struct {
+	namespaces []namespaceData
 }

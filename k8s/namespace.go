@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -16,7 +16,7 @@ func GetNamespaces(
 	error,
 ) {
 
-	list, err := clientset.CoreV1().Namespaces().List(context.TODO(), v1.ListOptions{})
+	list, err := clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("list namespaces: %w", err)
 	}

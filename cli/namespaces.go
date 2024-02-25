@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joshuasprow/log-viewer/pkg"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -24,7 +24,7 @@ func newNamespacesModel(clientset *kubernetes.Clientset) tea.Model {
 
 func (n namespacesModel) Init() tea.Cmd {
 	return func() tea.Msg {
-		list, err := n.clientset.CoreV1().Namespaces().List(context.TODO(), v1.ListOptions{})
+		list, err := n.clientset.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			return fmt.Errorf("list namespaces: %w", err)
 		}
