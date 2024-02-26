@@ -78,8 +78,23 @@ func readModelData() (modelData, error) {
 	return modelData{namespaces: namespaces}, nil
 }
 
+type viewKey string
+
+const (
+	mainView       viewKey = ""
+	namespacesView viewKey = "namespaces"
+	podsView       viewKey = "pods"
+)
+
+var views = map[string]childModel{
+	string(namespacesView): {},
+	string(podsView):       {},
+}
+
 type model struct {
 	data modelData
+	err  error
+	view string
 }
 
 func newModel(data modelData) model {
@@ -88,18 +103,139 @@ func newModel(data modelData) model {
 
 func (m model) Init() tea.Cmd { return nil }
 
+func findNamespace(data modelData, namespace string) (namespaceData, error) {
+	for _, ns := range data.namespaces {
+		if ns.Name == namespace {
+			return ns, nil
+		}
+	}
+
+	return namespaceData{}, fmt.Errorf("namespace not found: %s", namespace)
+}
+
+func findPod(data modelData, namespace string, pod string) (podData, error) {
+	ns, err := findNamespace(data, namespace)
+	if err != nil {
+		return podData{}, fmt.Errorf("find namespace: %w", err)
+	}
+
+	for _, p := range ns.Pods {
+		if p.Name == pod {
+			return p, nil
+		}
+	}
+
+	return podData{}, fmt.Errorf("pod not found: %s", pod)
+}
+
+func setView(m model, viewKey string, viewName string) (model, error) {
+	view, ok := views[viewKey]
+	if !ok {
+		return m, fmt.Errorf("view not found: %s", viewKey)
+	}
+
+	m.view = viewKey
+	view.name = viewName
+	views[viewKey] = view
+
+	return m, nil
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "q", "ctrl+c":
 			return model{}, tea.Quit
+
+		case "enter":
+			switch m.view {
+			case "":
+				n := m.data.namespaces[0]
+
+				namespace, err := findNamespace(m.data, n.Name)
+				if err != nil {
+					panic(fmt.Errorf("find namespace: %w", err))
+				}
+
+				m, err = setView(m, string(namespacesView), namespace.Name)
+				if err != nil {
+					panic(fmt.Errorf("set view: %w", err))
+				}
+			case string(namespacesView):
+				view, ok := views[m.view]
+				if !ok {
+					panic(fmt.Errorf("view not found: %s", m.view))
+				}
+
+				namespace, err := findNamespace(m.data, view.name)
+				if err != nil {
+					panic(fmt.Errorf("find namespace: %w", err))
+				}
+
+				pod, err := findPod(m.data, namespace.Name, namespace.Pods[0].Name)
+				if err != nil {
+					panic(fmt.Errorf("find pod: %w", err))
+				}
+
+				m, err = setView(m, string(podsView), pod.Name)
+				if err != nil {
+					panic(fmt.Errorf("set view: %w", err))
+				}
+			}
 		}
 	}
 
-	return model{}, nil
+	return m, nil
 }
 
 func (m model) View() string {
+	switch m.view {
+	case "":
+		return "hello"
+	case string(namespacesView):
+		view, ok := views[m.view]
+		if !ok {
+			return fmt.Sprintf("view not found: %s", m.view)
+		}
+
+		return view.name
+	case string(podsView):
+		view, ok := views[m.view]
+		if !ok {
+			return fmt.Sprintf("view not found: %s", m.view)
+		}
+
+		return view.name
+	default:
+		return fmt.Sprintf("view not found: %s", m.view)
+	}
+}
+
+type childModel struct {
+	name  string
+	names []string
+
+	selected string
+}
+
+func newChildModel(name string, names []string) childModel {
+	return childModel{}
+}
+
+func (m childModel) Init() tea.Cmd { return nil }
+
+func (m childModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch keypress := msg.String(); keypress {
+		case "enter":
+			return m, nil
+		}
+	}
+	return m, nil
+}
+
+func (m childModel) View() string {
 	return "hello"
 }
