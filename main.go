@@ -96,13 +96,31 @@ var views = map[viewKey]tea.Model{
 }
 
 type model struct {
-	data modelData
-	err  error
-	view viewKey
+	data  modelData
+	model list.Model
+	err   error
+	view  viewKey
 }
 
 func newModel(data modelData) model {
-	return model{data: data}
+	items := []list.Item{}
+
+	for _, p := range data.namespaces {
+		items = append(items, listItem(p.Name))
+	}
+
+	m := list.New(items, listItemDelegate{}, 10, 10)
+	m.SetFilteringEnabled(false)
+	m.SetShowStatusBar(false)
+	m.SetShowTitle(false)
+
+	m.Styles.PaginationStyle = cli.ListStyles.Pagination
+	m.Styles.HelpStyle = cli.ListStyles.Help
+
+	return model{
+		data:  data,
+		model: m,
+	}
 }
 
 func (m model) Init() tea.Cmd { return nil }
@@ -133,7 +151,16 @@ func findPod(data modelData, namespace string, pod string) (podData, error) {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	m.model, cmd = m.model.Update(msg)
+	if cmd != nil {
+		return m, cmd
+	}
+
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.model.SetWidth(msg.Width)
+		m.model.SetHeight(msg.Height)
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "q", "ctrl+c":
@@ -146,9 +173,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					panic("no namespaces")
 				}
 
-				n := m.data.namespaces[0]
+				n := m.model.SelectedItem().FilterValue()
 
-				namespace, err := findNamespace(m.data, n.Name)
+				namespace, err := findNamespace(m.data, n)
 				if err != nil {
 					panic(fmt.Errorf("find namespace: %w", err))
 				}
@@ -194,7 +221,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	switch m.view {
 	case "":
-		return "hello"
+		return m.model.View()
 	case namespacesView:
 		view, ok := views[m.view]
 		if !ok {
@@ -214,17 +241,17 @@ func (m model) View() string {
 	}
 }
 
-type namespaceItem string
+type listItem string
 
-func (i namespaceItem) FilterValue() string { return string(i) }
+func (i listItem) FilterValue() string { return string(i) }
 
-type namespaceItemDelegate struct{}
+type listItemDelegate struct{}
 
-func (d namespaceItemDelegate) Height() int                             { return 1 }
-func (d namespaceItemDelegate) Spacing() int                            { return 0 }
-func (d namespaceItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
-func (d namespaceItemDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
-	i, ok := item.(namespaceItem)
+func (d listItemDelegate) Height() int                             { return 1 }
+func (d listItemDelegate) Spacing() int                            { return 0 }
+func (d listItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+func (d listItemDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
+	i, ok := item.(listItem)
 	if !ok {
 		return
 	}
@@ -248,10 +275,10 @@ func newNamespaceModel(data namespaceData) namespaceModel {
 	items := []list.Item{}
 
 	for _, p := range data.Pods {
-		items = append(items, namespaceItem(p.Name))
+		items = append(items, listItem(p.Name))
 	}
 
-	m := list.New(items, namespaceItemDelegate{}, 10, 10)
+	m := list.New(items, listItemDelegate{}, 10, 10)
 	m.SetFilteringEnabled(false)
 	m.SetShowStatusBar(false)
 	m.SetShowTitle(false)
@@ -268,8 +295,6 @@ func newNamespaceModel(data namespaceData) namespaceModel {
 func (m namespaceModel) Init() tea.Cmd { return nil }
 
 func (m namespaceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-	m.model, cmd = m.model.Update(msg)
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -277,6 +302,8 @@ func (m namespaceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.model.SetHeight(msg.Height)
 	}
 
+	var cmd tea.Cmd
+	m.model, cmd = m.model.Update(msg)
 	return m, cmd
 }
 
