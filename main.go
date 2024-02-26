@@ -92,7 +92,7 @@ const (
 
 var views = map[viewKey]tea.Model{
 	namespacesView: newNamespaceModel(namespaceData{}),
-	podsView:       newPodsModel(podData{}),
+	podsView:       newPodModel(podData{}),
 }
 
 type mainModel struct {
@@ -203,7 +203,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					panic(fmt.Errorf("find pod: %w", err))
 				}
 
-				pview := newPodsModel(pod)
+				pview := newPodModel(pod)
 				views[podsView] = pview
 				m.view = podsView
 			}
@@ -310,12 +310,12 @@ func (m namespaceModel) View() string {
 	return m.model.View()
 }
 
-type podsModel struct {
+type podModel struct {
 	data  podData
 	model list.Model
 }
 
-func newPodsModel(data podData) podsModel {
+func newPodModel(data podData) podModel {
 	items := []list.Item{}
 
 	for _, l := range data.Logs {
@@ -330,15 +330,15 @@ func newPodsModel(data podData) podsModel {
 	m.Styles.PaginationStyle = cli.ListStyles.Pagination
 	m.Styles.HelpStyle = cli.ListStyles.Help
 
-	return podsModel{
+	return podModel{
 		data:  data,
 		model: m,
 	}
 }
 
-func (m podsModel) Init() tea.Cmd { return nil }
+func (m podModel) Init() tea.Cmd { return nil }
 
-func (m podsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m podModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.model.SetWidth(msg.Width)
@@ -350,34 +350,6 @@ func (m podsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m podsModel) View() string {
+func (m podModel) View() string {
 	return m.model.View()
-}
-
-type childModel struct {
-	name  string
-	names []string
-
-	selected string
-}
-
-func newChildModel(name string, names []string) childModel {
-	return childModel{}
-}
-
-func (m childModel) Init() tea.Cmd { return nil }
-
-func (m childModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch keypress := msg.String(); keypress {
-		case "enter":
-			return m, nil
-		}
-	}
-	return m, nil
-}
-
-func (m childModel) View() string {
-	return "hello"
 }
