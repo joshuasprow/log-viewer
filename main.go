@@ -86,15 +86,15 @@ const (
 	podsView       viewKey = "pods"
 )
 
-var views = map[string]childModel{
-	string(namespacesView): {},
-	string(podsView):       {},
+var views = map[viewKey]tea.Model{
+	namespacesView: namespacesModel{},
+	podsView:       podsModel{},
 }
 
 type model struct {
 	data modelData
 	err  error
-	view string
+	view viewKey
 }
 
 func newModel(data modelData) model {
@@ -128,19 +128,6 @@ func findPod(data modelData, namespace string, pod string) (podData, error) {
 	return podData{}, fmt.Errorf("pod not found: %s", pod)
 }
 
-func setView(m model, viewKey string, viewName string) (model, error) {
-	view, ok := views[viewKey]
-	if !ok {
-		return m, fmt.Errorf("view not found: %s", viewKey)
-	}
-
-	m.view = viewKey
-	view.name = viewName
-	views[viewKey] = view
-
-	return m, nil
-}
-
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -151,6 +138,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			switch m.view {
 			case "":
+				if len(m.data.namespaces) == 0 {
+					panic("no namespaces")
+				}
+
 				n := m.data.namespaces[0]
 
 				namespace, err := findNamespace(m.data, n.Name)
@@ -158,32 +149,37 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					panic(fmt.Errorf("find namespace: %w", err))
 				}
 
-				m, err = setView(m, string(namespacesView), namespace.Name)
-				if err != nil {
-					panic(fmt.Errorf("set view: %w", err))
-				}
-			case string(namespacesView):
-				view, ok := views[m.view]
+				view := newNamespacesModel(namespace)
+				views[namespacesView] = view
+				m.view = namespacesView
+
+			case namespacesView:
+				var nview namespacesModel
+				v, ok := views[m.view]
 				if !ok {
 					panic(fmt.Errorf("view not found: %s", m.view))
 				}
 
-				namespace, err := findNamespace(m.data, view.name)
-				if err != nil {
-					panic(fmt.Errorf("find namespace: %w", err))
+				nview, ok = v.(namespacesModel)
+				if !ok {
+					panic(fmt.Errorf("failed to cast %T as namespacesModel", v))
 				}
 
-				pod, err := findPod(m.data, namespace.Name, namespace.Pods[0].Name)
+				pod, err := findPod(m.data, nview.Name, nview.selected)
 				if err != nil {
 					panic(fmt.Errorf("find pod: %w", err))
 				}
 
-				m, err = setView(m, string(podsView), pod.Name)
-				if err != nil {
-					panic(fmt.Errorf("set view: %w", err))
-				}
+				pview := newPodsModel(pod)
+				views[podsView] = pview
+				m.view = podsView
 			}
 		}
+	}
+
+	for k, v := range views {
+		v, _ := v.Update(msg)
+		views[k] = v
 	}
 
 	return m, nil
@@ -193,20 +189,20 @@ func (m model) View() string {
 	switch m.view {
 	case "":
 		return "hello"
-	case string(namespacesView):
+	case namespacesView:
 		view, ok := views[m.view]
 		if !ok {
 			return fmt.Sprintf("view not found: %s", m.view)
 		}
 
-		return view.name
-	case string(podsView):
+		return view.View()
+	case podsView:
 		view, ok := views[m.view]
 		if !ok {
 			return fmt.Sprintf("view not found: %s", m.view)
 		}
 
-		return view.name
+		return view.View()
 	default:
 		return fmt.Sprintf("view not found: %s", m.view)
 	}
@@ -228,7 +224,12 @@ func (m namespacesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "enter":
+			if len(m.Pods) == 0 {
+				return m, nil
+			}
+
 			m.selected = m.Pods[0].Name
+
 			return m, nil
 		}
 	}
@@ -236,7 +237,7 @@ func (m namespacesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m namespacesModel) View() string {
-	return "hello"
+	return m.Name + ":" + m.selected
 }
 
 type podsModel struct {
@@ -255,7 +256,12 @@ func (m podsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "enter":
+			if len(m.Logs) == 0 {
+				return m, nil
+			}
+
 			m.selected = m.Logs[0]
+
 			return m, nil
 		}
 	}
@@ -263,7 +269,7 @@ func (m podsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m podsModel) View() string {
-	return "hello"
+	return m.Name + ":" + m.selected
 }
 
 type childModel struct {
