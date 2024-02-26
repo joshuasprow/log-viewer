@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/joshuasprow/log-viewer/pkg"
+	"github.com/joshuasprow/log-viewer/k8s"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -36,7 +36,7 @@ func (m *NamespacesModel) initData() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 
-		namespaces, err := pkg.GetNamespaces(ctx, m.clientset)
+		namespaces, err := k8s.GetNamespaces(ctx, m.clientset)
 		if err != nil {
 			return ErrMsg{Err: fmt.Errorf("load model data: %w", err)}
 		}

@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/joshuasprow/log-viewer/pkg"
+	"github.com/joshuasprow/log-viewer/k8s"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -48,7 +48,7 @@ func (m *LogsModel) initData() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 
-		logs, err := pkg.GetPodLogs(ctx, m.clientset, m.namespace, m.pod, m.container)
+		logs, err := k8s.GetPodLogs(ctx, m.clientset, m.namespace, m.pod, m.container)
 		if err != nil {
 			return ErrMsg{Err: fmt.Errorf("load model data: %w", err)}
 		}
