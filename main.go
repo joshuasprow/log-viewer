@@ -7,8 +7,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joho/godotenv"
+	"github.com/joshuasprow/log-viewer/k8s"
 	"github.com/joshuasprow/log-viewer/models"
-	"github.com/joshuasprow/log-viewer/pkg"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -22,7 +22,7 @@ func main() {
 	cfg, err := loadConfig()
 	check("load config", err)
 
-	clientset, err = pkg.NewClientset(cfg.kubeconfig)
+	clientset, err = k8s.NewClientset(cfg.kubeconfig)
 	check("create k8s clientset", err)
 
 	prg := tea.NewProgram(newMainModel())
