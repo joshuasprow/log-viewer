@@ -25,11 +25,13 @@ var ListStyles = struct {
 	Pagination lipgloss.Style
 	Help       lipgloss.Style
 	Title      lipgloss.Style
+	TitleBar   lipgloss.Style
 	QuitText   lipgloss.Style
 }{
 	Pagination: lipgloss.NewStyle().PaddingLeft(4),
 	Help:       list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1),
-	Title:      lipgloss.NewStyle().Margin(0, 0, 1, 4),
+	Title:      lipgloss.NewStyle().MarginLeft(4).Foreground(lipgloss.Color("205")),
+	TitleBar:   lipgloss.NewStyle(),
 	QuitText:   lipgloss.NewStyle().Margin(1, 0, 2, 4),
 }
 

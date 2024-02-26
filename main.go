@@ -180,8 +180,9 @@ func newMainModel() mainModel {
 	m.Styles.PaginationStyle = cli.ListStyles.Pagination
 	m.Styles.HelpStyle = cli.ListStyles.Help
 	m.Styles.Title = cli.ListStyles.Title
+	m.Styles.TitleBar = cli.ListStyles.TitleBar
 
-	m.Title = "namespaces"
+	m.Title = "?"
 
 	s := spinner.New()
 	s.Spinner = spinner.Dot
@@ -434,11 +435,12 @@ func newNamespaceModel(data namespaceData, size tea.WindowSizeMsg) namespaceMode
 	m.SetFilteringEnabled(false)
 	m.SetShowStatusBar(false)
 
-	m.Title = "pods"
+	m.Title = fmt.Sprintf("%s:?", data.Name)
 
 	m.Styles.PaginationStyle = cli.ListStyles.Pagination
 	m.Styles.HelpStyle = cli.ListStyles.Help
 	m.Styles.Title = cli.ListStyles.Title
+	m.Styles.TitleBar = cli.ListStyles.TitleBar
 
 	return namespaceModel{
 		data:  data,
@@ -470,6 +472,19 @@ type podModel struct {
 	data    podData
 }
 
+func renderPodLogsTitle(data podData, loading bool) string {
+	t := data.Namespace + ":"
+	if data.Container == "" {
+		t += data.Name
+	} else {
+		t += data.Name + "/" + data.Container
+	}
+	if loading {
+		t += " - loading..."
+	}
+	return t
+}
+
 func newPodModel(data podData, size tea.WindowSizeMsg) podModel {
 	items := []list.Item{}
 
@@ -490,12 +505,15 @@ func newPodModel(data podData, size tea.WindowSizeMsg) podModel {
 	m.Styles.PaginationStyle = cli.ListStyles.Pagination
 	m.Styles.HelpStyle = cli.ListStyles.Help
 	m.Styles.Title = cli.ListStyles.Title
+	m.Styles.TitleBar = cli.ListStyles.TitleBar
 
-	m.Title = "pod logs: loading..."
+	loading := true
+
+	m.Title = renderPodLogsTitle(data, loading)
 
 	return podModel{
 		model:   m,
-		loading: true,
+		loading: loading,
 		data:    data,
 	}
 }
@@ -541,13 +559,7 @@ func (m podModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m podModel) View() string {
-	title := "Pod Logs"
-
-	if m.loading {
-		title = "Pod Logs: loading..."
-	}
-
-	m.model.Title = title
+	m.model.Title = renderPodLogsTitle(m.data, m.loading)
 
 	return m.model.View()
 }
