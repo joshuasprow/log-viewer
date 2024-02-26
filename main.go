@@ -212,6 +212,60 @@ func (m model) View() string {
 	}
 }
 
+type namespacesModel struct {
+	namespaceData
+	selected string
+}
+
+func newNamespacesModel(data namespaceData) namespacesModel {
+	return namespacesModel{namespaceData: data}
+}
+
+func (m namespacesModel) Init() tea.Cmd { return nil }
+
+func (m namespacesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch keypress := msg.String(); keypress {
+		case "enter":
+			m.selected = m.Pods[0].Name
+			return m, nil
+		}
+	}
+	return m, nil
+}
+
+func (m namespacesModel) View() string {
+	return "hello"
+}
+
+type podsModel struct {
+	podData
+	selected string
+}
+
+func newPodsModel(data podData) podsModel {
+	return podsModel{podData: data}
+}
+
+func (m podsModel) Init() tea.Cmd { return nil }
+
+func (m podsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch keypress := msg.String(); keypress {
+		case "enter":
+			m.selected = m.Logs[0]
+			return m, nil
+		}
+	}
+	return m, nil
+}
+
+func (m podsModel) View() string {
+	return "hello"
+}
+
 type childModel struct {
 	name  string
 	names []string
