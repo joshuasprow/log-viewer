@@ -1,9 +1,9 @@
 package models
 
-type View string
+type ViewKey string
 
 const (
-	NamespacesView View = "namespaces"
-	ContainersView View = "containers"
-	LogsView       View = "logs"
+	NamespacesView ViewKey = "namespaces"
+	ContainersView ViewKey = "containers"
+	LogsView       ViewKey = "logs"
 )
