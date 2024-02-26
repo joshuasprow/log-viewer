@@ -1,4 +1,4 @@
-package pkg
+package models
 
 import (
 	"fmt"
@@ -11,10 +11,6 @@ import (
 
 type listItemDelegate struct{}
 
-func NewListItemDelegate() list.ItemDelegate {
-	return listItemDelegate{}
-}
-
 func (d listItemDelegate) Height() int                             { return 1 }
 func (d listItemDelegate) Spacing() int                            { return 0 }
 func (d listItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
@@ -24,10 +20,10 @@ func (d listItemDelegate) Render(w io.Writer, m list.Model, index int, item list
 		return
 	}
 
-	fn := ListItemStyles.Normal.Render
+	fn := listItemStyles.Normal.Render
 	if index == m.Index() {
 		fn = func(s ...string) string {
-			return ListItemStyles.Selected.Render("> " + strings.Join(s, " "))
+			return listItemStyles.Selected.Render("> " + strings.Join(s, " "))
 		}
 	}
 

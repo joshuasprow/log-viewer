@@ -3,22 +3,17 @@ package pkg
 import (
 	"context"
 
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
-type Pod struct {
-	Namespace  string
-	Name       string
-	Containers []string
-}
-
-func GetPodsNext(
+func GetPods(
 	ctx context.Context,
 	clientset *kubernetes.Clientset,
 	namespace string,
 ) (
-	[]Pod,
+	[]v1.Pod,
 	error,
 ) {
 	list, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
@@ -26,20 +21,10 @@ func GetPodsNext(
 		return nil, err
 	}
 
-	pods := []Pod{}
+	pods := []v1.Pod{}
 
 	for _, item := range list.Items {
-		containers := []string{}
-
-		for _, container := range item.Spec.Containers {
-			containers = append(containers, container.Name)
-		}
-
-		pods = append(pods, Pod{
-			Namespace:  item.Namespace,
-			Name:       item.Name,
-			Containers: containers,
-		})
+		pods = append(pods, item)
 	}
 
 	return pods, nil

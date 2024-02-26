@@ -1,0 +1,130 @@
+package models
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/charmbracelet/bubbles/list"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/joshuasprow/log-viewer/pkg"
+	"k8s.io/client-go/kubernetes"
+)
+
+type containerListItem struct {
+	Namespace string
+	Pod       string
+	Container string
+}
+
+func (n containerListItem) FilterValue() string {
+	return fmt.Sprintf("%s/%s/%s", n.Namespace, n.Pod, n.Container)
+}
+
+type ContainersModel struct {
+	clientset *kubernetes.Clientset
+	model     list.Model
+	namespace string
+}
+
+func Containers(
+	clientset *kubernetes.Clientset,
+	size tea.WindowSizeMsg,
+	namespace string,
+) tea.Model {
+	m := list.New(
+		[]list.Item{},
+		listItemDelegate{},
+		size.Width,
+		size.Height,
+	)
+
+	m.SetFilteringEnabled(false)
+	m.SetShowStatusBar(false)
+
+	m.Styles.PaginationStyle = listStyles.Pagination
+	m.Styles.HelpStyle = listStyles.Help
+	m.Styles.Title = listStyles.Title
+	m.Styles.TitleBar = listStyles.TitleBar
+
+	m.Title = "pick a pod"
+
+	return &ContainersModel{
+		clientset: clientset,
+		model:     m,
+		namespace: namespace,
+	}
+}
+
+func (m *ContainersModel) initData() tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+
+		pods, err := pkg.GetPods(ctx, m.clientset, m.namespace)
+		if err != nil {
+			return ErrMsg{Err: fmt.Errorf("load model data: %w", err)}
+		}
+
+		containers := []containerListItem{}
+
+		for _, pod := range pods {
+			if len(pod.Spec.Containers) == 0 {
+				containers = append(containers, containerListItem{
+					Namespace: pod.Namespace,
+					Pod:       pod.Name,
+				})
+				continue
+			}
+
+			for _, container := range pod.Spec.Containers {
+				containers = append(containers, containerListItem{
+					Namespace: pod.Namespace,
+					Pod:       pod.Name,
+					Container: container.Name,
+				})
+			}
+		}
+
+		return ContainersMsg(containers)
+	}
+}
+
+func (m *ContainersModel) Init() tea.Cmd {
+	return tea.Batch(m.model.StartSpinner(), m.initData())
+}
+
+func (m *ContainersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case ErrMsg:
+		m.model.StopSpinner()
+		return m, nil // todo: return error Cmd ?
+	case ContainersMsg:
+		items := []list.Item{}
+
+		for _, c := range msg {
+			items = append(items, c)
+		}
+
+		m.model.SetItems(items)
+		m.model.StopSpinner()
+	case tea.WindowSizeMsg:
+		m.model.SetWidth(msg.Width)
+		m.model.SetHeight(msg.Height)
+	}
+
+	var cmd tea.Cmd
+
+	m.model, cmd = m.model.Update(msg)
+	if cmd != nil {
+		return m, cmd
+	}
+
+	return m, nil
+}
+
+func (m *ContainersModel) View() string {
+	return m.model.View()
+}
+
+func (m *ContainersModel) Selected() list.Item {
+	return m.model.SelectedItem()
+}

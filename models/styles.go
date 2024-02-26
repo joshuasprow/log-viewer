@@ -1,11 +1,14 @@
-package pkg
+package models
 
 import (
 	"github.com/charmbracelet/bubbles/list"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
-var ListItemStyles = struct {
+var defaultSize = tea.WindowSizeMsg{Width: 80, Height: 10}
+
+var listItemStyles = struct {
 	Normal   lipgloss.Style
 	Selected lipgloss.Style
 }{
@@ -13,7 +16,7 @@ var ListItemStyles = struct {
 	Selected: lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("170")),
 }
 
-var ListStyles = struct {
+var listStyles = struct {
 	Pagination lipgloss.Style
 	Help       lipgloss.Style
 	Title      lipgloss.Style
