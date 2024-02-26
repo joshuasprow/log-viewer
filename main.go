@@ -92,7 +92,7 @@ const (
 
 var views = map[viewKey]tea.Model{
 	namespacesView: newNamespaceModel(namespaceData{}),
-	podsView:       podsModel{},
+	podsView:       newPodsModel(podData{}),
 }
 
 type model struct {
@@ -295,7 +295,6 @@ func newNamespaceModel(data namespaceData) namespaceModel {
 func (m namespaceModel) Init() tea.Cmd { return nil }
 
 func (m namespaceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.model.SetWidth(msg.Width)
@@ -312,35 +311,47 @@ func (m namespaceModel) View() string {
 }
 
 type podsModel struct {
-	podData
-	selected string
+	data  podData
+	model list.Model
 }
 
 func newPodsModel(data podData) podsModel {
-	return podsModel{podData: data}
+	items := []list.Item{}
+
+	for _, l := range data.Logs {
+		items = append(items, listItem(l))
+	}
+
+	m := list.New(items, listItemDelegate{}, 10, 10)
+	m.SetFilteringEnabled(false)
+	m.SetShowStatusBar(false)
+	m.SetShowTitle(false)
+
+	m.Styles.PaginationStyle = cli.ListStyles.Pagination
+	m.Styles.HelpStyle = cli.ListStyles.Help
+
+	return podsModel{
+		data:  data,
+		model: m,
+	}
 }
 
 func (m podsModel) Init() tea.Cmd { return nil }
 
 func (m podsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch keypress := msg.String(); keypress {
-		case "enter":
-			if len(m.Logs) == 0 {
-				return m, nil
-			}
-
-			m.selected = m.Logs[0]
-
-			return m, nil
-		}
+	case tea.WindowSizeMsg:
+		m.model.SetWidth(msg.Width)
+		m.model.SetHeight(msg.Height)
 	}
-	return m, nil
+
+	var cmd tea.Cmd
+	m.model, cmd = m.model.Update(msg)
+	return m, cmd
 }
 
 func (m podsModel) View() string {
-	return m.Name + ":" + m.selected
+	return m.model.View()
 }
 
 type childModel struct {
