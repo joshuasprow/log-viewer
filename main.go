@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/joho/godotenv"
 	"github.com/joshuasprow/log-viewer/cli"
 	"github.com/joshuasprow/log-viewer/k8s"
@@ -133,6 +134,7 @@ var views = map[viewKey]tea.Model{
 
 type mainModel struct {
 	model   list.Model
+	spinner spinner.Model
 	loading bool
 	data    modelDataMsg
 	err     error
@@ -140,6 +142,10 @@ type mainModel struct {
 }
 
 func newMainModel() mainModel {
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+
 	m := list.New([]list.Item{}, listItemDelegate{}, 10, 10)
 	m.SetFilteringEnabled(false)
 	m.SetShowStatusBar(false)
@@ -150,11 +156,12 @@ func newMainModel() mainModel {
 
 	return mainModel{
 		model:   m,
+		spinner: s,
 		loading: true,
 	}
 }
 
-func (m mainModel) Init() tea.Cmd {
+func (mainModel) initData() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 
@@ -165,6 +172,10 @@ func (m mainModel) Init() tea.Cmd {
 
 		return modelDataMsg{data}
 	}
+}
+
+func (m mainModel) Init() tea.Cmd {
+	return tea.Batch(m.spinner.Tick, m.initData())
 }
 
 func findNamespace(data modelDataMsg, namespace string) (namespaceData, error) {
@@ -193,16 +204,11 @@ func findPod(data modelDataMsg, namespace string, pod string) (podData, error) {
 }
 
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-	m.model, cmd = m.model.Update(msg)
-	if cmd != nil {
-		return m, cmd
-	}
-
 	switch msg := msg.(type) {
 	case errMsg:
 		m.err = msg.err
 		m.loading = false
+
 		return m, nil
 	case modelDataMsg:
 		m.data = msg
@@ -222,7 +228,20 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch keypress := msg.String(); keypress {
 		case "q", "ctrl+c":
 			return mainModel{}, tea.Quit
+		case "esc":
+			if m.loading {
+				return m, nil
+			}
 
+			switch m.view {
+			case "":
+			case namespacesView:
+				m.view = ""
+			case podsView:
+				m.view = namespacesView
+			}
+
+			return m, nil
 		case "enter":
 			if m.loading {
 				return m, nil
@@ -244,7 +263,6 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				view := newNamespaceModel(namespace)
 				views[namespacesView] = view
 				m.view = namespacesView
-
 			case namespacesView:
 				var nview namespaceModel
 				v, ok := views[m.view]
@@ -271,8 +289,23 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	var cmd tea.Cmd
+	m.model, cmd = m.model.Update(msg)
+	if cmd != nil {
+		return m, cmd
+	}
+
+	m.spinner, cmd = m.spinner.Update(msg)
+	if cmd != nil {
+		return m, cmd
+	}
+
 	for k, v := range views {
-		v, _ := v.Update(msg)
+		v, cmd = v.Update(msg)
+		if cmd != nil {
+			return m, cmd
+		}
+
 		views[k] = v
 	}
 
@@ -287,7 +320,11 @@ func (m mainModel) View() string {
 	switch m.view {
 	case "":
 		if m.loading {
-			return spinner.New().View()
+			return lipgloss.JoinHorizontal(
+				lipgloss.Left,
+				lipgloss.NewStyle().MarginRight(1).Render(m.spinner.View()),
+				"loading...",
+			)
 		}
 
 		return m.model.View()
