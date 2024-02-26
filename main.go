@@ -151,10 +151,7 @@ const (
 	podsView       viewKey = "pods"
 )
 
-var views = map[viewKey]tea.Model{
-	namespacesView: newNamespaceModel(namespaceData{}),
-	podsView:       newPodModel(podData{}),
-}
+var views = map[viewKey]tea.Model{}
 
 type mainModel struct {
 	model   list.Model
@@ -163,20 +160,30 @@ type mainModel struct {
 	data    modelDataMsg
 	err     error
 	view    viewKey
+	size    tea.WindowSizeMsg
 }
 
-func newMainModel() mainModel {
-	s := spinner.New()
-	s.Spinner = spinner.Dot
-	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+var defaultSize = tea.WindowSizeMsg{Width: 80, Height: 10}
 
-	m := list.New([]list.Item{}, listItemDelegate{}, 10, 10)
+func newMainModel() mainModel {
+
+	m := list.New(
+		[]list.Item{},
+		listItemDelegate{},
+		defaultSize.Width,
+		defaultSize.Height,
+	)
+
 	m.SetFilteringEnabled(false)
 	m.SetShowStatusBar(false)
 	m.SetShowTitle(false)
 
 	m.Styles.PaginationStyle = cli.ListStyles.Pagination
 	m.Styles.HelpStyle = cli.ListStyles.Help
+
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
 	return mainModel{
 		model:   m,
@@ -248,6 +255,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.model.SetWidth(msg.Width)
 		m.model.SetHeight(msg.Height)
+		m.size = msg
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "q", "ctrl+c":
@@ -286,7 +294,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
-				view := newNamespaceModel(namespace)
+				view := newNamespaceModel(namespace, m.size)
 				views[namespacesView] = view
 				m.view = namespacesView
 			case namespacesView:
@@ -310,7 +318,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
-				pview := newPodModel(pod)
+				pview := newPodModel(pod, m.size)
 				views[podsView] = pview
 				m.view = podsView
 
@@ -407,14 +415,20 @@ type namespaceModel struct {
 	model list.Model
 }
 
-func newNamespaceModel(data namespaceData) namespaceModel {
+func newNamespaceModel(data namespaceData, size tea.WindowSizeMsg) namespaceModel {
 	items := []list.Item{}
 
 	for _, p := range data.Pods {
 		items = append(items, p)
 	}
 
-	m := list.New(items, listItemDelegate{}, 10, 10)
+	m := list.New(
+		items,
+		listItemDelegate{},
+		size.Width,
+		size.Height-1,
+	)
+
 	m.SetFilteringEnabled(false)
 	m.SetShowStatusBar(false)
 	m.SetShowTitle(false)
@@ -452,14 +466,20 @@ type podModel struct {
 	data    podData
 }
 
-func newPodModel(data podData) podModel {
+func newPodModel(data podData, size tea.WindowSizeMsg) podModel {
 	items := []list.Item{}
 
 	for _, l := range data.Logs {
 		items = append(items, listItem(l))
 	}
 
-	m := list.New(items, listItemDelegate{}, 10, 10)
+	m := list.New(
+		items,
+		listItemDelegate{},
+		size.Width,
+		size.Height-1,
+	)
+
 	m.SetFilteringEnabled(false)
 	m.SetShowStatusBar(false)
 
@@ -507,6 +527,7 @@ func (m podModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.model.SetItems(items)
+		m.loading = false
 	}
 
 	var cmd tea.Cmd
@@ -518,10 +539,10 @@ func (m podModel) View() string {
 	title := "Pod Logs"
 
 	if m.loading {
-		m.model.Title = "Pod Logs: loading..."
+		title = "Pod Logs: loading..."
 	}
 
-	m.model.Title = lipgloss.NewStyle().Width(30).Render(title)
+	m.model.Title = title
 
 	return m.model.View()
 }
