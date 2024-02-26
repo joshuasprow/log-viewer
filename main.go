@@ -12,18 +12,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-type viewKey string
-
-const (
-	namespacesView viewKey = "namespaces"
-	containersView viewKey = "containers"
-	logsView       viewKey = "logs"
-)
-
 var (
 	clientset   *kubernetes.Clientset
 	defaultSize = tea.WindowSizeMsg{Width: 80, Height: 10}
-	views       = map[viewKey]tea.Model{}
+	views       = map[models.View]tea.Model{}
 )
 
 func main() {
@@ -69,20 +61,20 @@ func loadConfig() (config, error) {
 
 type mainModel struct {
 	err  error
-	view viewKey
+	view models.View
 	size tea.WindowSizeMsg
 }
 
 func newMainModel() mainModel {
 	return mainModel{
-		view: namespacesView,
+		view: models.NamespacesView,
 		size: defaultSize,
 	}
 }
 
 func (m mainModel) Init() tea.Cmd {
-	views[namespacesView] = models.Namespaces(clientset, defaultSize)
-	return views[namespacesView].Init()
+	views[models.NamespacesView] = models.Namespaces(clientset, defaultSize)
+	return views[models.NamespacesView].Init()
 }
 
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -98,16 +90,16 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return mainModel{}, tea.Quit
 		case "esc":
 			switch m.view {
-			case containersView:
-				m.view = namespacesView
-			case logsView:
-				m.view = containersView
+			case models.ContainersView:
+				m.view = models.NamespacesView
+			case models.LogsView:
+				m.view = models.ContainersView
 			}
 			return m, nil
 		case "enter":
 			switch m.view {
-			case namespacesView:
-				v, ok := views[namespacesView]
+			case models.NamespacesView:
+				v, ok := views[models.NamespacesView]
 				if !ok {
 					m.err = fmt.Errorf("failed to find namespace view")
 				}
@@ -121,13 +113,13 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				namespace := n.Selected()
 
 				view := models.Containers(clientset, m.size, namespace)
-				views[containersView] = view
-				m.view = containersView
+				views[models.ContainersView] = view
+				m.view = models.ContainersView
 
-				return m, views[containersView].Init()
+				return m, views[models.ContainersView].Init()
 
-			case containersView:
-				v, ok := views[containersView]
+			case models.ContainersView:
+				v, ok := views[models.ContainersView]
 				if !ok {
 					m.err = fmt.Errorf("failed to find containers view")
 				}
@@ -141,10 +133,10 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				container := n.Selected()
 
 				view := models.Logs(clientset, m.size, container.Namespace, container.Pod, container.Container)
-				views[logsView] = view
-				m.view = logsView
+				views[models.LogsView] = view
+				m.view = models.LogsView
 
-				return m, views[logsView].Init()
+				return m, views[models.LogsView].Init()
 			}
 		}
 	}
