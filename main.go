@@ -250,14 +250,16 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.view {
 			case "":
 				if len(m.data.namespaces) == 0 {
-					panic("no namespaces")
+					m.err = fmt.Errorf("no namespaces in model data")
+					return m, nil
 				}
 
 				n := m.model.SelectedItem().FilterValue()
 
 				namespace, err := findNamespace(m.data, n)
 				if err != nil {
-					panic(fmt.Errorf("find namespace: %w", err))
+					m.err = fmt.Errorf("find namespace: %w", err)
+					return m, nil
 				}
 
 				view := newNamespaceModel(namespace)
@@ -267,19 +269,22 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				var nview namespaceModel
 				v, ok := views[m.view]
 				if !ok {
-					panic(fmt.Errorf("view not found: %s", m.view))
+					m.err = fmt.Errorf("view not found: %s", m.view)
+					return m, nil
 				}
 
 				nview, ok = v.(namespaceModel)
 				if !ok {
-					panic(fmt.Errorf("failed to cast %T as namespacesModel", v))
+					m.err = fmt.Errorf("failed to cast %T as namespacesModel", v)
+					return m, nil
 				}
 
 				selected := nview.model.SelectedItem().FilterValue()
 
 				pod, err := findPod(m.data, nview.data.Name, selected)
 				if err != nil {
-					panic(fmt.Errorf("find pod: %w", err))
+					m.err = fmt.Errorf("find pod: %w", err)
+					return m, nil
 				}
 
 				pview := newPodModel(pod)
