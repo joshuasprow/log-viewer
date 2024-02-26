@@ -13,22 +13,22 @@ import (
 const defaultListWidth = 20
 const defaultListHeight = 12
 
-var listItemStyles = struct {
-	normal   lipgloss.Style
-	selected lipgloss.Style
+var ListItemStyles = struct {
+	Normal   lipgloss.Style
+	Selected lipgloss.Style
 }{
-	normal:   lipgloss.NewStyle().PaddingLeft(4),
-	selected: lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("170")),
+	Normal:   lipgloss.NewStyle().PaddingLeft(4),
+	Selected: lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("170")),
 }
 
-var listStyles = struct {
-	pagination lipgloss.Style
-	help       lipgloss.Style
-	quitText   lipgloss.Style
+var ListStyles = struct {
+	Pagination lipgloss.Style
+	Help       lipgloss.Style
+	QuitText   lipgloss.Style
 }{
-	pagination: lipgloss.NewStyle().PaddingLeft(4),
-	help:       list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1),
-	quitText:   lipgloss.NewStyle().Margin(1, 0, 2, 4),
+	Pagination: lipgloss.NewStyle().PaddingLeft(4),
+	Help:       list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1),
+	QuitText:   lipgloss.NewStyle().Margin(1, 0, 2, 4),
 }
 
 type listItem string
@@ -46,10 +46,10 @@ func (d listItemDelegate) Render(w io.Writer, m list.Model, index int, item list
 		return
 	}
 
-	fn := listItemStyles.normal.Render
+	fn := ListItemStyles.Normal.Render
 	if index == m.Index() {
 		fn = func(s ...string) string {
-			return listItemStyles.selected.Render("> " + strings.Join(s, " "))
+			return ListItemStyles.Selected.Render("> " + strings.Join(s, " "))
 		}
 	}
 
@@ -72,8 +72,8 @@ func newListModel(initialItems []string) listModel {
 	l.SetShowStatusBar(false)
 	l.SetShowTitle(false)
 
-	l.Styles.PaginationStyle = listStyles.pagination
-	l.Styles.HelpStyle = listStyles.help
+	l.Styles.PaginationStyle = ListStyles.Pagination
+	l.Styles.HelpStyle = ListStyles.Help
 
 	return listModel{l}
 }
