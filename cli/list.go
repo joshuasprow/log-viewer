@@ -24,10 +24,12 @@ var ListItemStyles = struct {
 var ListStyles = struct {
 	Pagination lipgloss.Style
 	Help       lipgloss.Style
+	Title      lipgloss.Style
 	QuitText   lipgloss.Style
 }{
 	Pagination: lipgloss.NewStyle().PaddingLeft(4),
 	Help:       list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1),
+	Title:      lipgloss.NewStyle().Margin(0, 0, 1, 4),
 	QuitText:   lipgloss.NewStyle().Margin(1, 0, 2, 4),
 }
 

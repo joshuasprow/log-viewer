@@ -176,10 +176,12 @@ func newMainModel() mainModel {
 
 	m.SetFilteringEnabled(false)
 	m.SetShowStatusBar(false)
-	m.SetShowTitle(false)
 
 	m.Styles.PaginationStyle = cli.ListStyles.Pagination
 	m.Styles.HelpStyle = cli.ListStyles.Help
+	m.Styles.Title = cli.ListStyles.Title
+
+	m.Title = "namespaces"
 
 	s := spinner.New()
 	s.Spinner = spinner.Dot
@@ -431,10 +433,12 @@ func newNamespaceModel(data namespaceData, size tea.WindowSizeMsg) namespaceMode
 
 	m.SetFilteringEnabled(false)
 	m.SetShowStatusBar(false)
-	m.SetShowTitle(false)
+
+	m.Title = "pods"
 
 	m.Styles.PaginationStyle = cli.ListStyles.Pagination
 	m.Styles.HelpStyle = cli.ListStyles.Help
+	m.Styles.Title = cli.ListStyles.Title
 
 	return namespaceModel{
 		data:  data,
@@ -485,8 +489,9 @@ func newPodModel(data podData, size tea.WindowSizeMsg) podModel {
 
 	m.Styles.PaginationStyle = cli.ListStyles.Pagination
 	m.Styles.HelpStyle = cli.ListStyles.Help
+	m.Styles.Title = cli.ListStyles.Title
 
-	m.Title = "Pod Logs: loading..."
+	m.Title = "pod logs: loading..."
 
 	return podModel{
 		model:   m,
