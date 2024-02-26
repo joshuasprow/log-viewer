@@ -17,6 +17,7 @@ type viewKey string
 const (
 	namespacesView viewKey = "namespaces"
 	containersView viewKey = "containers"
+	logsView       viewKey = "logs"
 )
 
 var (
@@ -97,11 +98,10 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return mainModel{}, tea.Quit
 		case "esc":
 			switch m.view {
-			case "":
-			case namespacesView:
-				m.view = ""
 			case containersView:
 				m.view = namespacesView
+			case logsView:
+				m.view = containersView
 			}
 			return m, nil
 		case "enter":
@@ -114,7 +114,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				n, ok := v.(*models.NamespacesModel)
 				if !ok {
-					m.err = fmt.Errorf("failed to cast %T as models.List", v)
+					m.err = fmt.Errorf("failed to cast %T as *models.NamespacesModel", v)
 					return m, nil
 				}
 
@@ -125,6 +125,26 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.view = containersView
 
 				return m, views[containersView].Init()
+
+			case containersView:
+				v, ok := views[containersView]
+				if !ok {
+					m.err = fmt.Errorf("failed to find containers view")
+				}
+
+				n, ok := v.(*models.ContainersModel)
+				if !ok {
+					m.err = fmt.Errorf("failed to cast %T as *models.ContainersModel", v)
+					return m, nil
+				}
+
+				container := n.Selected()
+
+				view := models.Logs(clientset, m.size, container.Namespace, container.Pod, container.Container)
+				views[logsView] = view
+				m.view = logsView
+
+				return m, views[logsView].Init()
 			}
 		}
 	}

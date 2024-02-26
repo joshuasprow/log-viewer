@@ -11,4 +11,6 @@ func (e ErrMsg) Error() string {
 
 type NamespacesMsg []string
 
-type ContainersMsg []containerListItem
+type ContainersMsg []ContainerListItem
+
+type LogsMsg []string

@@ -10,26 +10,26 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-type ContainerListItem struct {
-	Namespace string
-	Pod       string
-	Container string
+type logListItem string
+
+func (i logListItem) FilterValue() string {
+	return string(i)
 }
 
-func (n ContainerListItem) FilterValue() string {
-	return fmt.Sprintf("%s/%s/%s", n.Namespace, n.Pod, n.Container)
-}
-
-type ContainersModel struct {
+type LogsModel struct {
 	clientset *kubernetes.Clientset
 	model     list.Model
 	namespace string
+	pod       string
+	container string
 }
 
-func Containers(
+func Logs(
 	clientset *kubernetes.Clientset,
 	size tea.WindowSizeMsg,
 	namespace string,
+	pod string,
+	container string,
 ) tea.Model {
 	m := list.New(
 		[]list.Item{},
@@ -46,62 +46,50 @@ func Containers(
 	m.Styles.Title = listStyles.Title
 	m.Styles.TitleBar = listStyles.TitleBar
 
-	m.Title = "containers"
+	m.Title = "logs"
 
-	return &ContainersModel{
+	return &LogsModel{
 		clientset: clientset,
 		model:     m,
 		namespace: namespace,
+		pod:       pod,
+		container: container,
 	}
 }
 
-func (m *ContainersModel) initData() tea.Cmd {
+func (m *LogsModel) initData() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 
-		pods, err := pkg.GetPods(ctx, m.clientset, m.namespace)
+		logs, err := pkg.GetPodLogs(ctx, m.clientset, m.namespace, m.pod, m.container)
 		if err != nil {
 			return ErrMsg{Err: fmt.Errorf("load model data: %w", err)}
 		}
 
-		containers := []ContainerListItem{}
+		items := []list.Item{}
 
-		for _, pod := range pods {
-			if len(pod.Spec.Containers) == 0 {
-				containers = append(containers, ContainerListItem{
-					Namespace: pod.Namespace,
-					Pod:       pod.Name,
-				})
-				continue
-			}
-
-			for _, container := range pod.Spec.Containers {
-				containers = append(containers, ContainerListItem{
-					Namespace: pod.Namespace,
-					Pod:       pod.Name,
-					Container: container.Name,
-				})
-			}
+		for _, l := range logs {
+			items = append(items, logListItem(l))
 		}
 
-		return ContainersMsg(containers)
+		return LogsMsg(logs)
 	}
 }
 
-func (m *ContainersModel) Init() tea.Cmd {
+func (m *LogsModel) Init() tea.Cmd {
 	return tea.Batch(m.model.StartSpinner(), m.initData())
 }
 
-func (m *ContainersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *LogsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ErrMsg:
 		m.model.StopSpinner()
 		return m, nil // todo: return error Cmd ?
-	case ContainersMsg:
+	case LogsMsg:
 		items := []list.Item{}
 
-		for _, c := range msg {
-			items = append(items, c)
+		for _, i := range msg {
+			items = append(items, logListItem(i))
 		}
 
 		m.model.SetItems(items)
@@ -121,10 +109,10 @@ func (m *ContainersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m *ContainersModel) View() string {
+func (m *LogsModel) View() string {
 	return m.model.View()
 }
 
-func (m *ContainersModel) Selected() ContainerListItem {
-	return m.model.SelectedItem().(ContainerListItem)
+func (m *LogsModel) Selected() list.Item {
+	return m.model.SelectedItem()
 }

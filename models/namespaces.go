@@ -26,7 +26,7 @@ func Namespaces(clientset *kubernetes.Clientset, size tea.WindowSizeMsg) tea.Mod
 		[]list.Item{},
 		listItemDelegate{},
 		size.Width,
-		size.Height,
+		size.Height-2,
 	)
 
 	m.SetFilteringEnabled(false)
@@ -37,7 +37,7 @@ func Namespaces(clientset *kubernetes.Clientset, size tea.WindowSizeMsg) tea.Mod
 	m.Styles.Title = listStyles.Title
 	m.Styles.TitleBar = listStyles.TitleBar
 
-	m.Title = "pick a namespace"
+	m.Title = "namespaces"
 
 	return &NamespacesModel{
 		clientset: clientset,
@@ -78,7 +78,7 @@ func (m *NamespacesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.model.StopSpinner()
 	case tea.WindowSizeMsg:
 		m.model.SetWidth(msg.Width)
-		m.model.SetHeight(msg.Height)
+		m.model.SetHeight(msg.Height - 2)
 	}
 
 	var cmd tea.Cmd
