@@ -17,7 +17,19 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-var clientset *kubernetes.Clientset
+type viewKey string
+
+const (
+	mainView       viewKey = ""
+	namespacesView viewKey = "namespaces"
+	podsView       viewKey = "pods"
+)
+
+var (
+	clientset   *kubernetes.Clientset
+	views       = map[viewKey]tea.Model{}
+	defaultSize = tea.WindowSizeMsg{Width: 80, Height: 10}
+)
 
 func main() {
 	cfg, err := loadConfig()
@@ -60,6 +72,12 @@ func loadConfig() (config, error) {
 	return config{kubeconfig: kubeconfig}, nil
 }
 
+type podLogData string
+
+func (d podLogData) FilterValue() string {
+	return string(d)
+}
+
 type podData struct {
 	Namespace string   `json:"namespace"`
 	Name      string   `json:"name"`
@@ -77,6 +95,10 @@ func (d podData) FilterValue() string {
 type namespaceData struct {
 	Name string    `json:"name"`
 	Pods []podData `json:"pods"`
+}
+
+func (d namespaceData) FilterValue() string {
+	return d.Name
 }
 
 type errMsg struct {
@@ -142,16 +164,6 @@ func loadModelData(ctx context.Context) ([]namespaceData, error) {
 	return data, nil
 }
 
-type viewKey string
-
-const (
-	mainView       viewKey = ""
-	namespacesView viewKey = "namespaces"
-	podsView       viewKey = "pods"
-)
-
-var views = map[viewKey]tea.Model{}
-
 type mainModel struct {
 	model   list.Model
 	spinner spinner.Model
@@ -162,7 +174,26 @@ type mainModel struct {
 	size    tea.WindowSizeMsg
 }
 
-var defaultSize = tea.WindowSizeMsg{Width: 80, Height: 10}
+type listItemDelegate struct{}
+
+func (d listItemDelegate) Height() int                             { return 1 }
+func (d listItemDelegate) Spacing() int                            { return 0 }
+func (d listItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+func (d listItemDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
+	i, ok := item.(list.Item)
+	if !ok {
+		return
+	}
+
+	fn := pkg.ListItemStyles.Normal.Render
+	if index == m.Index() {
+		fn = func(s ...string) string {
+			return pkg.ListItemStyles.Selected.Render("> " + strings.Join(s, " "))
+		}
+	}
+
+	fmt.Fprint(w, fn(i.FilterValue()))
+}
 
 func newMainModel() mainModel {
 	m := list.New(
@@ -247,7 +278,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		items := []list.Item{}
 
 		for _, ns := range m.data.namespaces {
-			items = append(items, listItem(ns.Name))
+			items = append(items, ns)
 		}
 
 		m.model.SetItems(items)
@@ -386,31 +417,6 @@ func (m mainModel) View() string {
 	}
 }
 
-type listItem string
-
-func (i listItem) FilterValue() string { return string(i) }
-
-type listItemDelegate struct{}
-
-func (d listItemDelegate) Height() int                             { return 1 }
-func (d listItemDelegate) Spacing() int                            { return 0 }
-func (d listItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
-func (d listItemDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
-	i, ok := item.(list.Item)
-	if !ok {
-		return
-	}
-
-	fn := pkg.ListItemStyles.Normal.Render
-	if index == m.Index() {
-		fn = func(s ...string) string {
-			return pkg.ListItemStyles.Selected.Render("> " + strings.Join(s, " "))
-		}
-	}
-
-	fmt.Fprint(w, fn(i.FilterValue()))
-}
-
 type namespaceModel struct {
 	data  namespaceData
 	model list.Model
@@ -486,7 +492,7 @@ func newPodModel(data podData, size tea.WindowSizeMsg) podModel {
 	items := []list.Item{}
 
 	for _, l := range data.Logs {
-		items = append(items, listItem(l))
+		items = append(items, podLogData(l))
 	}
 
 	m := list.New(
@@ -542,7 +548,7 @@ func (m podModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		items := []list.Item{}
 
 		for _, l := range msg {
-			items = append(items, listItem(l))
+			items = append(items, podLogData(l))
 		}
 
 		m.model.SetItems(items)
