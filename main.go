@@ -13,8 +13,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/joho/godotenv"
-	"github.com/joshuasprow/log-viewer/cli"
-	"github.com/joshuasprow/log-viewer/k8s"
+	"github.com/joshuasprow/log-viewer/pkg"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -24,7 +23,7 @@ func main() {
 	cfg, err := loadConfig()
 	check("load config", err)
 
-	clientset, err = k8s.NewClientset(cfg.kubeconfig)
+	clientset, err = pkg.NewClientset(cfg.kubeconfig)
 	check("create k8s clientset", err)
 
 	prg := tea.NewProgram(newMainModel())
@@ -96,7 +95,7 @@ type modelDataMsg struct {
 }
 
 func loadModelData(ctx context.Context) ([]namespaceData, error) {
-	pods, err := k8s.GetPodsNext(ctx, clientset, "")
+	pods, err := pkg.GetPodsNext(ctx, clientset, "")
 	if err != nil {
 		return nil, fmt.Errorf("get pods: %w", err)
 	}
@@ -166,7 +165,6 @@ type mainModel struct {
 var defaultSize = tea.WindowSizeMsg{Width: 80, Height: 10}
 
 func newMainModel() mainModel {
-
 	m := list.New(
 		[]list.Item{},
 		listItemDelegate{},
@@ -177,10 +175,10 @@ func newMainModel() mainModel {
 	m.SetFilteringEnabled(false)
 	m.SetShowStatusBar(false)
 
-	m.Styles.PaginationStyle = cli.ListStyles.Pagination
-	m.Styles.HelpStyle = cli.ListStyles.Help
-	m.Styles.Title = cli.ListStyles.Title
-	m.Styles.TitleBar = cli.ListStyles.TitleBar
+	m.Styles.PaginationStyle = pkg.ListStyles.Pagination
+	m.Styles.HelpStyle = pkg.ListStyles.Help
+	m.Styles.Title = pkg.ListStyles.Title
+	m.Styles.TitleBar = pkg.ListStyles.TitleBar
 
 	m.Title = "?"
 
@@ -403,10 +401,10 @@ func (d listItemDelegate) Render(w io.Writer, m list.Model, index int, item list
 		return
 	}
 
-	fn := cli.ListItemStyles.Normal.Render
+	fn := pkg.ListItemStyles.Normal.Render
 	if index == m.Index() {
 		fn = func(s ...string) string {
-			return cli.ListItemStyles.Selected.Render("> " + strings.Join(s, " "))
+			return pkg.ListItemStyles.Selected.Render("> " + strings.Join(s, " "))
 		}
 	}
 
@@ -432,15 +430,14 @@ func newNamespaceModel(data namespaceData, size tea.WindowSizeMsg) namespaceMode
 		size.Height-1,
 	)
 
-	m.SetFilteringEnabled(false)
 	m.SetShowStatusBar(false)
 
 	m.Title = fmt.Sprintf("%s:?", data.Name)
 
-	m.Styles.PaginationStyle = cli.ListStyles.Pagination
-	m.Styles.HelpStyle = cli.ListStyles.Help
-	m.Styles.Title = cli.ListStyles.Title
-	m.Styles.TitleBar = cli.ListStyles.TitleBar
+	m.Styles.PaginationStyle = pkg.ListStyles.Pagination
+	m.Styles.HelpStyle = pkg.ListStyles.Help
+	m.Styles.Title = pkg.ListStyles.Title
+	m.Styles.TitleBar = pkg.ListStyles.TitleBar
 
 	return namespaceModel{
 		data:  data,
@@ -499,13 +496,12 @@ func newPodModel(data podData, size tea.WindowSizeMsg) podModel {
 		size.Height-1,
 	)
 
-	m.SetFilteringEnabled(false)
 	m.SetShowStatusBar(false)
 
-	m.Styles.PaginationStyle = cli.ListStyles.Pagination
-	m.Styles.HelpStyle = cli.ListStyles.Help
-	m.Styles.Title = cli.ListStyles.Title
-	m.Styles.TitleBar = cli.ListStyles.TitleBar
+	m.Styles.PaginationStyle = pkg.ListStyles.Pagination
+	m.Styles.HelpStyle = pkg.ListStyles.Help
+	m.Styles.Title = pkg.ListStyles.Title
+	m.Styles.TitleBar = pkg.ListStyles.TitleBar
 
 	loading := true
 
@@ -528,7 +524,7 @@ func (m podModel) Init() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 
-		l, err := k8s.GetPodLogs(ctx, clientset, m.data.Namespace, m.data.Name, m.data.Container)
+		l, err := pkg.GetPodLogs(ctx, clientset, m.data.Namespace, m.data.Name, m.data.Container)
 		if err != nil {
 			return errMsg{fmt.Errorf("get pod logs: %w", err)}
 		}
