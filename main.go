@@ -299,39 +299,39 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				view := newNamespaceModel(namespace, m.size)
 				views[namespacesView] = view
 				m.view = namespacesView
+
+				return m, views[namespacesView].Init()
 			case namespacesView:
-				var nview namespaceModel
-
-				v, ok := views[m.view]
+				v, ok := views[namespacesView]
 				if !ok {
-					m.err = fmt.Errorf("view not found: %s", m.view)
+					m.err = fmt.Errorf("failed to find namespace view")
+				}
+
+				n, ok := v.(namespaceModel)
+				if !ok {
+					m.err = fmt.Errorf("failed to cast %T as namespaceModel", v)
 					return m, nil
 				}
 
-				nview, ok = v.(namespaceModel)
-				if !ok {
-					m.err = fmt.Errorf("failed to cast %T as namespacesModel", v)
-					return m, nil
-				}
-
-				selected := m.model.SelectedItem()
+				selected := n.model.SelectedItem()
 
 				pod, ok := selected.(podData)
 				if !ok {
-					m.err = fmt.Errorf("failed to cast %T as podData", nview.model.SelectedItem())
+					m.err = fmt.Errorf("failed to cast %T as podData", selected)
 					return m, nil
 				}
 
-				pview := newPodModel(pod, m.size)
-				views[podsView] = pview
+				view := newPodModel(pod, m.size)
+				views[podsView] = view
 				m.view = podsView
 
-				return m, pview.Init()
+				return m, views[podsView].Init()
 			}
 		}
 	}
 
 	var cmd tea.Cmd
+
 	m.model, cmd = m.model.Update(msg)
 	if cmd != nil {
 		return m, cmd
@@ -343,7 +343,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	for k, v := range views {
-		v, cmd = v.Update(msg)
+		v, cmd := v.Update(msg)
 		if cmd != nil {
 			return m, cmd
 		}
