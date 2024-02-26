@@ -12,9 +12,19 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joho/godotenv"
 	"github.com/joshuasprow/log-viewer/cli"
+	"github.com/joshuasprow/log-viewer/k8s"
+	"k8s.io/client-go/kubernetes"
 )
 
+var clientset *kubernetes.Clientset
+
 func main() {
+	cfg, err := loadConfig()
+	check("load config", err)
+
+	clientset, err = k8s.NewClientset(cfg.kubeconfig)
+	check("create k8s clientset", err)
+
 	d, err := readModelData()
 	check("read model data", err)
 
@@ -31,11 +41,11 @@ func check(msg string, err error) {
 	}
 }
 
-type flags struct {
+type config struct {
 	kubeconfig string
 }
 
-func parseFlags() (flags, error) {
+func loadConfig() (config, error) {
 	godotenv.Load()
 
 	kubeconfig := os.Getenv("KUBECONFIG")
@@ -43,13 +53,13 @@ func parseFlags() (flags, error) {
 	if kubeconfig == "" {
 		homedir, err := os.UserHomeDir()
 		if err != nil {
-			return flags{}, fmt.Errorf("get user home dir: %w", err)
+			return config{}, fmt.Errorf("get user home dir: %w", err)
 		}
 
 		kubeconfig = filepath.Join(homedir, ".kube", "config")
 	}
 
-	return flags{kubeconfig: kubeconfig}, nil
+	return config{kubeconfig: kubeconfig}, nil
 }
 
 type podData struct {
