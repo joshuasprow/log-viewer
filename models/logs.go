@@ -31,21 +31,8 @@ func Logs(
 	pod string,
 	container string,
 ) tea.Model {
-	m := list.New(
-		[]list.Item{},
-		listItemDelegate{},
-		size.Width,
-		size.Height-2,
-	)
-
-	m.SetFilteringEnabled(false)
-	m.SetShowStatusBar(false)
-
-	m.Styles.PaginationStyle = listStyles.Pagination
-	m.Styles.HelpStyle = listStyles.Help
-	m.Styles.Title = listStyles.Title
-	m.Styles.TitleBar = listStyles.TitleBar
-
+	m := defaultListModel(size)
+	m.SetFilteringEnabled(true)
 	m.Title = "logs"
 
 	return &LogsModel{
