@@ -28,3 +28,33 @@ func GetPods(
 
 	return pods, nil
 }
+
+type Pod struct {
+	Namespace string
+	Name      string
+}
+
+func GetPodsNext(
+	ctx context.Context,
+	clientset *kubernetes.Clientset,
+	namespace string,
+) (
+	[]Pod,
+	error,
+) {
+	list, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	pods := []Pod{}
+
+	for _, item := range list.Items {
+		pods = append(pods, Pod{
+			Namespace: item.Namespace,
+			Name:      item.Name,
+		})
+	}
+
+	return pods, nil
+}

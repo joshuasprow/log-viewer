@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -25,12 +26,14 @@ func main() {
 	clientset, err = k8s.NewClientset(cfg.kubeconfig)
 	check("create k8s clientset", err)
 
-	d, err := readModelData()
-	check("read model data", err)
+	ctx := context.Background()
 
-	p := tea.NewProgram(newMainModel(d))
+	data, err := loadModelData(ctx)
+	check("load model data", err)
 
-	_, err = p.Run()
+	prg := tea.NewProgram(newMainModel(data))
+
+	_, err = prg.Run()
 	check("run program", err)
 }
 
@@ -74,6 +77,39 @@ type namespaceData struct {
 
 type modelData struct {
 	namespaces []namespaceData
+}
+
+func loadModelData(ctx context.Context) (modelData, error) {
+	pods, err := k8s.GetPodsNext(ctx, clientset, "")
+	if err != nil {
+		return modelData{}, fmt.Errorf("get pods: %w", err)
+	}
+
+	namespaces := map[string]namespaceData{}
+
+	for _, pod := range pods {
+		p := podData{Name: pod.Name, Logs: []string{}}
+
+		namespace, ok := namespaces[pod.Namespace]
+		if ok {
+			namespace.Pods = append(namespace.Pods, p)
+		} else {
+			namespace = namespaceData{
+				Name: pod.Namespace,
+				Pods: []podData{p},
+			}
+		}
+
+		namespaces[pod.Namespace] = namespace
+	}
+
+	data := modelData{}
+
+	for _, namespace := range namespaces {
+		data.namespaces = append(data.namespaces, namespace)
+	}
+
+	return data, nil
 }
 
 func readModelData() (modelData, error) {
