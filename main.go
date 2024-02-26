@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -10,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joho/godotenv"
 	"github.com/joshuasprow/log-viewer/cli"
@@ -26,12 +26,7 @@ func main() {
 	clientset, err = k8s.NewClientset(cfg.kubeconfig)
 	check("create k8s clientset", err)
 
-	ctx := context.Background()
-
-	data, err := loadModelData(ctx)
-	check("load model data", err)
-
-	prg := tea.NewProgram(newMainModel(data))
+	prg := tea.NewProgram(newMainModel())
 
 	_, err = prg.Run()
 	check("run program", err)
@@ -75,14 +70,25 @@ type namespaceData struct {
 	Pods []podData `json:"pods"`
 }
 
-type modelData struct {
+type errMsg struct {
+	err error
+}
+
+func (e errMsg) Error() string {
+	if e.err == nil {
+		return ""
+	}
+	return e.err.Error()
+}
+
+type modelDataMsg struct {
 	namespaces []namespaceData
 }
 
-func loadModelData(ctx context.Context) (modelData, error) {
+func loadModelData(ctx context.Context) ([]namespaceData, error) {
 	pods, err := k8s.GetPodsNext(ctx, clientset, "")
 	if err != nil {
-		return modelData{}, fmt.Errorf("get pods: %w", err)
+		return nil, fmt.Errorf("get pods: %w", err)
 	}
 
 	namespaces := map[string]namespaceData{}
@@ -103,29 +109,13 @@ func loadModelData(ctx context.Context) (modelData, error) {
 		namespaces[pod.Namespace] = namespace
 	}
 
-	data := modelData{}
+	data := []namespaceData{}
 
 	for _, namespace := range namespaces {
-		data.namespaces = append(data.namespaces, namespace)
+		data = append(data, namespace)
 	}
 
 	return data, nil
-}
-
-func readModelData() (modelData, error) {
-	d, err := os.ReadFile("tmp/data.json")
-	if err != nil {
-		return modelData{}, fmt.Errorf("read file: %w", err)
-	}
-
-	namespaces := []namespaceData{}
-
-	err = json.Unmarshal(d, &namespaces)
-	if err != nil {
-		return modelData{}, fmt.Errorf("unmarshal data: %w", err)
-	}
-
-	return modelData{namespaces: namespaces}, nil
 }
 
 type viewKey string
@@ -142,20 +132,15 @@ var views = map[viewKey]tea.Model{
 }
 
 type mainModel struct {
-	data  modelData
-	model list.Model
-	err   error
-	view  viewKey
+	model   list.Model
+	loading bool
+	data    modelDataMsg
+	err     error
+	view    viewKey
 }
 
-func newMainModel(data modelData) mainModel {
-	items := []list.Item{}
-
-	for _, p := range data.namespaces {
-		items = append(items, listItem(p.Name))
-	}
-
-	m := list.New(items, listItemDelegate{}, 10, 10)
+func newMainModel() mainModel {
+	m := list.New([]list.Item{}, listItemDelegate{}, 10, 10)
 	m.SetFilteringEnabled(false)
 	m.SetShowStatusBar(false)
 	m.SetShowTitle(false)
@@ -164,14 +149,25 @@ func newMainModel(data modelData) mainModel {
 	m.Styles.HelpStyle = cli.ListStyles.Help
 
 	return mainModel{
-		data:  data,
-		model: m,
+		model:   m,
+		loading: true,
 	}
 }
 
-func (m mainModel) Init() tea.Cmd { return nil }
+func (m mainModel) Init() tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
 
-func findNamespace(data modelData, namespace string) (namespaceData, error) {
+		data, err := loadModelData(ctx)
+		if err != nil {
+			return errMsg{err: fmt.Errorf("load model data: %w", err)}
+		}
+
+		return modelDataMsg{data}
+	}
+}
+
+func findNamespace(data modelDataMsg, namespace string) (namespaceData, error) {
 	for _, ns := range data.namespaces {
 		if ns.Name == namespace {
 			return ns, nil
@@ -181,7 +177,7 @@ func findNamespace(data modelData, namespace string) (namespaceData, error) {
 	return namespaceData{}, fmt.Errorf("namespace not found: %s", namespace)
 }
 
-func findPod(data modelData, namespace string, pod string) (podData, error) {
+func findPod(data modelDataMsg, namespace string, pod string) (podData, error) {
 	ns, err := findNamespace(data, namespace)
 	if err != nil {
 		return podData{}, fmt.Errorf("find namespace: %w", err)
@@ -204,6 +200,21 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
+	case errMsg:
+		m.err = msg.err
+		m.loading = false
+		return m, nil
+	case modelDataMsg:
+		m.data = msg
+		items := []list.Item{}
+
+		for _, ns := range m.data.namespaces {
+			items = append(items, listItem(ns.Name))
+		}
+
+		m.model.SetItems(items)
+
+		m.loading = false
 	case tea.WindowSizeMsg:
 		m.model.SetWidth(msg.Width)
 		m.model.SetHeight(msg.Height)
@@ -213,6 +224,10 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return mainModel{}, tea.Quit
 
 		case "enter":
+			if m.loading {
+				return m, nil
+			}
+
 			switch m.view {
 			case "":
 				if len(m.data.namespaces) == 0 {
@@ -265,8 +280,16 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m mainModel) View() string {
+	if m.err != nil {
+		return m.err.Error()
+	}
+
 	switch m.view {
 	case "":
+		if m.loading {
+			return spinner.New().View()
+		}
+
 		return m.model.View()
 	case namespacesView:
 		view, ok := views[m.view]
