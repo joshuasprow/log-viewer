@@ -18,7 +18,7 @@ func main() {
 	d, err := readModelData()
 	check("read model data", err)
 
-	p := tea.NewProgram(newModel(d))
+	p := tea.NewProgram(newMainModel(d))
 
 	_, err = p.Run()
 	check("run program", err)
@@ -95,14 +95,14 @@ var views = map[viewKey]tea.Model{
 	podsView:       newPodsModel(podData{}),
 }
 
-type model struct {
+type mainModel struct {
 	data  modelData
 	model list.Model
 	err   error
 	view  viewKey
 }
 
-func newModel(data modelData) model {
+func newMainModel(data modelData) mainModel {
 	items := []list.Item{}
 
 	for _, p := range data.namespaces {
@@ -117,13 +117,13 @@ func newModel(data modelData) model {
 	m.Styles.PaginationStyle = cli.ListStyles.Pagination
 	m.Styles.HelpStyle = cli.ListStyles.Help
 
-	return model{
+	return mainModel{
 		data:  data,
 		model: m,
 	}
 }
 
-func (m model) Init() tea.Cmd { return nil }
+func (m mainModel) Init() tea.Cmd { return nil }
 
 func findNamespace(data modelData, namespace string) (namespaceData, error) {
 	for _, ns := range data.namespaces {
@@ -150,7 +150,7 @@ func findPod(data modelData, namespace string, pod string) (podData, error) {
 	return podData{}, fmt.Errorf("pod not found: %s", pod)
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.model, cmd = m.model.Update(msg)
 	if cmd != nil {
@@ -164,7 +164,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "q", "ctrl+c":
-			return model{}, tea.Quit
+			return mainModel{}, tea.Quit
 
 		case "enter":
 			switch m.view {
@@ -218,7 +218,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) View() string {
+func (m mainModel) View() string {
 	switch m.view {
 	case "":
 		return m.model.View()
