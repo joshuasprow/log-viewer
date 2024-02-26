@@ -241,31 +241,6 @@ func (m mainModel) Init() tea.Cmd {
 	return tea.Batch(m.spinner.Tick, m.initData())
 }
 
-func findNamespace(data modelDataMsg, namespace string) (namespaceData, error) {
-	for _, ns := range data.namespaces {
-		if ns.Name == namespace {
-			return ns, nil
-		}
-	}
-
-	return namespaceData{}, fmt.Errorf("namespace not found: %s", namespace)
-}
-
-func findPod(data modelDataMsg, namespace string, pod string) (podData, error) {
-	ns, err := findNamespace(data, namespace)
-	if err != nil {
-		return podData{}, fmt.Errorf("find namespace: %w", err)
-	}
-
-	for _, p := range ns.Pods {
-		if p.Name == pod {
-			return p, nil
-		}
-	}
-
-	return podData{}, fmt.Errorf("pod not found: %s", pod)
-}
-
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case errMsg:
@@ -313,16 +288,11 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			switch m.view {
 			case "":
-				if len(m.data.namespaces) == 0 {
-					m.err = fmt.Errorf("no namespaces in model data")
-					return m, nil
-				}
+				selected := m.model.SelectedItem()
 
-				n := m.model.SelectedItem().FilterValue()
-
-				namespace, err := findNamespace(m.data, n)
-				if err != nil {
-					m.err = fmt.Errorf("find namespace: %w", err)
+				namespace, ok := selected.(namespaceData)
+				if !ok {
+					m.err = fmt.Errorf("failed to cast %T as namespaceData", selected)
 					return m, nil
 				}
 
@@ -344,7 +314,9 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
-				pod, ok := nview.model.SelectedItem().(podData)
+				selected := m.model.SelectedItem()
+
+				pod, ok := selected.(podData)
 				if !ok {
 					m.err = fmt.Errorf("failed to cast %T as podData", nview.model.SelectedItem())
 					return m, nil
