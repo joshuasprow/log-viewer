@@ -15,7 +15,7 @@ import (
 var (
 	clientset   *kubernetes.Clientset
 	defaultSize = tea.WindowSizeMsg{Width: 80, Height: 10}
-	views       = map[models.View]tea.Model{}
+	views       = map[models.ViewKey]tea.Model{}
 )
 
 func main() {
@@ -61,7 +61,7 @@ func loadConfig() (config, error) {
 
 type mainModel struct {
 	err  error
-	view models.View
+	view models.ViewKey
 	size tea.WindowSizeMsg
 }
 
