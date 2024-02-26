@@ -62,8 +62,17 @@ func loadConfig() (config, error) {
 }
 
 type podData struct {
-	Name string   `json:"name"`
-	Logs []string `json:"logs"`
+	Namespace string   `json:"namespace"`
+	Name      string   `json:"name"`
+	Container string   `json:"container"`
+	Logs      []string `json:"logs"`
+}
+
+func (d podData) FilterValue() string {
+	if d.Container == "" {
+		return d.Name
+	}
+	return fmt.Sprintf("%s/%s", d.Name, d.Container)
 }
 
 type namespaceData struct {
@@ -95,16 +104,31 @@ func loadModelData(ctx context.Context) ([]namespaceData, error) {
 	namespaces := map[string]namespaceData{}
 
 	for _, pod := range pods {
-		p := podData{Name: pod.Name, Logs: []string{}}
+		pp := []podData{}
+
+		if len(pod.Containers) == 0 {
+			pp = append(pp, podData{
+				Namespace: pod.Namespace,
+				Name:      pod.Name,
+				Logs:      []string{},
+			})
+		} else {
+			for _, c := range pod.Containers {
+				pp = append(pp, podData{
+					Namespace: pod.Namespace,
+					Name:      pod.Name,
+					Container: c,
+					Logs:      []string{},
+				})
+			}
+		}
 
 		namespace, ok := namespaces[pod.Namespace]
+
 		if ok {
-			namespace.Pods = append(namespace.Pods, p)
+			namespace.Pods = append(namespace.Pods, pp...)
 		} else {
-			namespace = namespaceData{
-				Name: pod.Namespace,
-				Pods: []podData{p},
-			}
+			namespace = namespaceData{Name: pod.Namespace, Pods: pp}
 		}
 
 		namespaces[pod.Namespace] = namespace
@@ -267,6 +291,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.view = namespacesView
 			case namespacesView:
 				var nview namespaceModel
+
 				v, ok := views[m.view]
 				if !ok {
 					m.err = fmt.Errorf("view not found: %s", m.view)
@@ -279,17 +304,17 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
-				selected := nview.model.SelectedItem().FilterValue()
-
-				pod, err := findPod(m.data, nview.data.Name, selected)
-				if err != nil {
-					m.err = fmt.Errorf("find pod: %w", err)
+				pod, ok := nview.model.SelectedItem().(podData)
+				if !ok {
+					m.err = fmt.Errorf("failed to cast %T as podData", nview.model.SelectedItem())
 					return m, nil
 				}
 
 				pview := newPodModel(pod)
 				views[podsView] = pview
 				m.view = podsView
+
+				return m, pview.Init()
 			}
 		}
 	}
@@ -362,7 +387,7 @@ func (d listItemDelegate) Height() int                             { return 1 }
 func (d listItemDelegate) Spacing() int                            { return 0 }
 func (d listItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 func (d listItemDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
-	i, ok := item.(listItem)
+	i, ok := item.(list.Item)
 	if !ok {
 		return
 	}
@@ -386,7 +411,7 @@ func newNamespaceModel(data namespaceData) namespaceModel {
 	items := []list.Item{}
 
 	for _, p := range data.Pods {
-		items = append(items, listItem(p.Name))
+		items = append(items, p)
 	}
 
 	m := list.New(items, listItemDelegate{}, 10, 10)
@@ -422,8 +447,9 @@ func (m namespaceModel) View() string {
 }
 
 type podModel struct {
-	data  podData
-	model list.Model
+	model   list.Model
+	loading bool
+	data    podData
 }
 
 func newPodModel(data podData) podModel {
@@ -436,24 +462,51 @@ func newPodModel(data podData) podModel {
 	m := list.New(items, listItemDelegate{}, 10, 10)
 	m.SetFilteringEnabled(false)
 	m.SetShowStatusBar(false)
-	m.SetShowTitle(false)
 
 	m.Styles.PaginationStyle = cli.ListStyles.Pagination
 	m.Styles.HelpStyle = cli.ListStyles.Help
 
+	m.Title = "Pod Logs: loading..."
+
 	return podModel{
-		data:  data,
-		model: m,
+		model:   m,
+		loading: true,
+		data:    data,
 	}
 }
 
-func (m podModel) Init() tea.Cmd { return nil }
+type podLogsMsg []string
+
+func (m podModel) Init() tea.Cmd {
+	if m.data.Namespace == "" || m.data.Name == "" {
+		return nil
+	}
+
+	return func() tea.Msg {
+		ctx := context.Background()
+
+		l, err := k8s.GetPodLogs(ctx, clientset, m.data.Namespace, m.data.Name, m.data.Container)
+		if err != nil {
+			return errMsg{fmt.Errorf("get pod logs: %w", err)}
+		}
+
+		return podLogsMsg(l)
+	}
+}
 
 func (m podModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.model.SetWidth(msg.Width)
 		m.model.SetHeight(msg.Height)
+	case podLogsMsg:
+		items := []list.Item{}
+
+		for _, l := range msg {
+			items = append(items, listItem(l))
+		}
+
+		m.model.SetItems(items)
 	}
 
 	var cmd tea.Cmd
@@ -462,5 +515,13 @@ func (m podModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m podModel) View() string {
+	title := "Pod Logs"
+
+	if m.loading {
+		m.model.Title = "Pod Logs: loading..."
+	}
+
+	m.model.Title = lipgloss.NewStyle().Width(30).Render(title)
+
 	return m.model.View()
 }
