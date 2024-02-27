@@ -5,16 +5,13 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/joshuasprow/log-viewer/k8s"
 )
 
-type ContainerListItem struct {
-	Namespace string
-	Pod       string
-	Container string
-}
+type ContainerListItem k8s.Container
 
 func (n ContainerListItem) FilterValue() string {
-	return fmt.Sprintf("%s/%s/%s", n.Namespace, n.Pod, n.Container)
+	return fmt.Sprintf("%s/%s/%s", n.Namespace, n.Pod, n.Name)
 }
 
 type ContainersModel struct {
@@ -43,7 +40,7 @@ func (m *ContainersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		items := []list.Item{}
 
 		for _, c := range msg {
-			items = append(items, c)
+			items = append(items, ContainerListItem(c))
 		}
 
 		m.model.SetItems(items)

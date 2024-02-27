@@ -42,42 +42,6 @@ func (m MainModel) Init() tea.Cmd {
 	}
 }
 
-func getContainers(
-	ctx context.Context,
-	clientset *kubernetes.Clientset,
-	namespace string,
-) (
-	[]ContainerListItem,
-	error,
-) {
-	pods, err := k8s.GetPods(ctx, clientset, namespace)
-	if err != nil {
-		return nil, fmt.Errorf("load model data: %w", err)
-	}
-
-	containers := []ContainerListItem{}
-
-	for _, pod := range pods {
-		if len(pod.Spec.Containers) == 0 {
-			containers = append(containers, ContainerListItem{
-				Namespace: pod.Namespace,
-				Pod:       pod.Name,
-			})
-			continue
-		}
-
-		for _, container := range pod.Spec.Containers {
-			containers = append(containers, ContainerListItem{
-				Namespace: pod.Namespace,
-				Pod:       pod.Name,
-				Container: container.Name,
-			})
-		}
-	}
-
-	return containers, nil
-}
-
 func (m MainModel) handleEnter() (MainModel, tea.Cmd) {
 	switch m.view {
 	case NamespacesView:
@@ -95,7 +59,7 @@ func (m MainModel) handleEnter() (MainModel, tea.Cmd) {
 		return m, func() tea.Msg {
 			ctx := context.Background()
 
-			containers, err := getContainers(ctx, m.clientset, namespace)
+			containers, err := k8s.GetContainers(ctx, m.clientset, namespace)
 			if err != nil {
 				return ErrMsg{Err: fmt.Errorf("get containers: %w", err)}
 			}
@@ -122,7 +86,7 @@ func (m MainModel) handleEnter() (MainModel, tea.Cmd) {
 				m.clientset,
 				container.Namespace,
 				container.Pod,
-				container.Container,
+				container.Name,
 			)
 			if err != nil {
 				return ErrMsg{Err: fmt.Errorf("get pod logs: %w", err)}

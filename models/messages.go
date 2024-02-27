@@ -1,5 +1,7 @@
 package models
 
+import "github.com/joshuasprow/log-viewer/k8s"
+
 type ErrMsg struct{ Err error }
 
 func (e ErrMsg) Error() string {
@@ -11,6 +13,6 @@ func (e ErrMsg) Error() string {
 
 type NamespacesMsg []string
 
-type ContainersMsg []ContainerListItem
+type ContainersMsg []k8s.Container
 
 type LogsMsg []string
