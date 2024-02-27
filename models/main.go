@@ -12,26 +12,33 @@ import (
 type MainModel struct {
 	clientset *kubernetes.Clientset
 	view      ViewKey
-	views     Views
 	size      tea.WindowSizeMsg
 	err       error
+
+	// views
+	namespaces NamespacesModel
+	containers ContainersModel
+	logs       LogsModel
 }
 
 func Main(clientset *kubernetes.Clientset) MainModel {
 	return MainModel{
 		clientset: clientset,
 		view:      NamespacesView,
-		views:     Views{namespaces: Namespaces()},
 		size: tea.WindowSizeMsg{
 			Width:  appStyles.GetWidth(),
 			Height: appStyles.GetHeight(),
 		},
+
+		namespaces: Namespaces(),
+		containers: Containers(),
+		logs:       Logs(),
 	}
 }
 
 func (m MainModel) Init() tea.Cmd {
 	return tea.Batch(
-		m.views.namespaces.model.StartSpinner(),
+		m.namespaces.model.StartSpinner(),
 		func() tea.Msg {
 			ctx := context.Background()
 
@@ -48,19 +55,13 @@ func (m MainModel) Init() tea.Cmd {
 func (m MainModel) handleEnter() (MainModel, tea.Cmd) {
 	switch m.view {
 	case NamespacesView:
-		n := m.views.namespaces
-		if n == nil {
-			m.err = fmt.Errorf("failed to find namespace view")
-			return m, nil
-		}
-
-		namespace := n.Selected()
+		namespace := m.namespaces.Selected()
 
 		m.view = ContainersView
-		m.views.containers = Containers(namespace)
+		m.containers = Containers()
 
 		return m, tea.Batch(
-			m.views.containers.model.StartSpinner(),
+			m.containers.model.StartSpinner(),
 			func() tea.Msg {
 				ctx := context.Background()
 
@@ -73,19 +74,13 @@ func (m MainModel) handleEnter() (MainModel, tea.Cmd) {
 			},
 		)
 	case ContainersView:
-		c := m.views.containers
-		if c == nil {
-			m.err = fmt.Errorf("failed to find containers view")
-			return m, nil
-		}
-
-		container := c.Selected()
+		container := m.containers.Selected()
 
 		m.view = LogsView
-		m.views.logs = Logs(container)
+		m.logs = Logs()
 
 		return m, tea.Batch(
-			m.views.logs.model.StartSpinner(),
+			m.logs.model.StartSpinner(),
 			func() tea.Msg {
 				ctx := context.Background()
 
@@ -141,21 +136,16 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	var v tea.Model
-
 	switch m.view {
 	case NamespacesView:
-		v, cmd = m.views.namespaces.Update(msg)
-		m.views.namespaces = v.(*NamespacesModel)
-		m.views.namespaces.model.SetSize(m.size.Width, m.size.Height)
+		m.namespaces, cmd = m.namespaces.Update(msg)
+		m.namespaces.model.SetSize(m.size.Width, m.size.Height)
 	case ContainersView:
-		v, cmd = m.views.containers.Update(msg)
-		m.views.containers = v.(*ContainersModel)
-		m.views.containers.model.SetSize(m.size.Width, m.size.Height)
+		m.containers, cmd = m.containers.Update(msg)
+		m.containers.model.SetSize(m.size.Width, m.size.Height)
 	case LogsView:
-		v, cmd = m.views.logs.Update(msg)
-		m.views.logs = v.(*LogsModel)
-		m.views.logs.model.SetSize(m.size.Width, m.size.Height)
+		m.logs, cmd = m.logs.Update(msg)
+		m.logs.model.SetSize(m.size.Width, m.size.Height)
 	}
 
 	return m, cmd
@@ -168,11 +158,11 @@ func (m MainModel) View() string {
 
 	switch m.view {
 	case NamespacesView:
-		return m.views.namespaces.View()
+		return m.namespaces.View()
 	case ContainersView:
-		return m.views.containers.View()
+		return m.containers.View()
 	case LogsView:
-		return m.views.logs.View()
+		return m.logs.View()
 	default:
 		return fmt.Sprintf("unknown view: %v", m.view)
 	}

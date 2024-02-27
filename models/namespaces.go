@@ -14,19 +14,20 @@ func (n namespaceListItem) FilterValue() string {
 
 type NamespacesModel struct {
 	clientset *kubernetes.Clientset
-	model     list.Model
+	// a pointer is necessary for updating the spinner state
+	model *list.Model
 }
 
-func Namespaces() *NamespacesModel {
+func Namespaces() NamespacesModel {
 	m := defaultListModel()
 	m.Title = "namespaces"
 
-	return &NamespacesModel{model: m}
+	return NamespacesModel{model: &m}
 }
 
 func (NamespacesModel) Init() tea.Cmd { return nil }
 
-func (m *NamespacesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m NamespacesModel) Update(msg tea.Msg) (NamespacesModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case NamespacesMsg:
 		items := []list.Item{}
@@ -39,17 +40,16 @@ func (m *NamespacesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.model.StopSpinner()
 	}
 
-	var cmd tea.Cmd
-
-	m.model, cmd = m.model.Update(msg)
+	lm, cmd := m.model.Update(msg)
+	m.model = &lm
 
 	return m, cmd
 }
 
-func (m *NamespacesModel) View() string {
+func (m NamespacesModel) View() string {
 	return m.model.View()
 }
 
-func (m *NamespacesModel) Selected() string {
+func (m NamespacesModel) Selected() string {
 	return m.model.SelectedItem().(namespaceListItem).FilterValue()
 }

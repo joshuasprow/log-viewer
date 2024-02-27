@@ -12,20 +12,21 @@ func (i logListItem) FilterValue() string {
 }
 
 type LogsModel struct {
-	model list.Model
+	// a pointer is necessary for updating the spinner state
+	model *list.Model
 }
 
-func Logs(container ContainerListItem) *LogsModel {
+func Logs() LogsModel {
 	m := defaultListModel()
 	m.SetFilteringEnabled(true)
 	m.Title = "logs"
 
-	return &LogsModel{model: m}
+	return LogsModel{model: &m}
 }
 
 func (LogsModel) Init() tea.Cmd { return nil }
 
-func (m *LogsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m LogsModel) Update(msg tea.Msg) (LogsModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case LogsMsg:
 		items := []list.Item{}
@@ -38,17 +39,16 @@ func (m *LogsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.model.StopSpinner()
 	}
 
-	var cmd tea.Cmd
-
-	m.model, cmd = m.model.Update(msg)
+	lm, cmd := m.model.Update(msg)
+	m.model = &lm
 
 	return m, cmd
 }
 
-func (m *LogsModel) View() string {
+func (m LogsModel) View() string {
 	return m.model.View()
 }
 
-func (m *LogsModel) Selected() list.Item {
+func (m LogsModel) Selected() list.Item {
 	return m.model.SelectedItem()
 }
