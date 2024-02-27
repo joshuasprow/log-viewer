@@ -83,7 +83,14 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				container := n.Selected()
 
-				view := Logs(m.clientset, m.size, container.Namespace, container.Pod, container.Container)
+				view := Logs(
+					m.clientset,
+					m.size,
+					container.Namespace,
+					container.Pod,
+					container.Container,
+				)
+
 				views[LogsView] = view
 				m.view = LogsView
 
@@ -93,7 +100,9 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	var cmd tea.Cmd
+
 	views[m.view], cmd = views[m.view].Update(msg)
+
 	return m, cmd
 }
 
