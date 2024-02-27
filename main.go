@@ -3,12 +3,11 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/joho/godotenv"
 	"github.com/joshuasprow/log-viewer/k8s"
 	"github.com/joshuasprow/log-viewer/models"
+	"github.com/joshuasprow/log-viewer/pkg"
 )
 
 var (
@@ -16,10 +15,10 @@ var (
 )
 
 func main() {
-	cfg, err := loadConfig()
+	cfg, err := pkg.LoadConfig()
 	check("load config", err)
 
-	clientset, err := k8s.NewClientset(cfg.kubeconfig)
+	clientset, err := k8s.NewClientset(cfg.Kubeconfig)
 	check("create k8s clientset", err)
 
 	prg := tea.NewProgram(models.Main(clientset))
@@ -33,25 +32,4 @@ func check(msg string, err error) {
 		fmt.Printf("%s: %v\n", msg, err)
 		os.Exit(1)
 	}
-}
-
-type config struct {
-	kubeconfig string
-}
-
-func loadConfig() (config, error) {
-	godotenv.Load()
-
-	kubeconfig := os.Getenv("KUBECONFIG")
-
-	if kubeconfig == "" {
-		homedir, err := os.UserHomeDir()
-		if err != nil {
-			return config{}, fmt.Errorf("get user home dir: %w", err)
-		}
-
-		kubeconfig = filepath.Join(homedir, ".kube", "config")
-	}
-
-	return config{kubeconfig: kubeconfig}, nil
 }
