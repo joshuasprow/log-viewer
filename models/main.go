@@ -21,8 +21,11 @@ func Main(clientset *kubernetes.Clientset) MainModel {
 	return MainModel{
 		clientset: clientset,
 		view:      NamespacesView,
-		views:     Views{namespaces: Namespaces(defaultSize)},
-		size:      defaultSize,
+		views:     Views{namespaces: Namespaces()},
+		size: tea.WindowSizeMsg{
+			Width:  appStyles.GetWidth(),
+			Height: appStyles.GetHeight(),
+		},
 	}
 }
 
@@ -87,7 +90,7 @@ func (m MainModel) handleEnter() (MainModel, tea.Cmd) {
 		namespace := n.Selected()
 
 		m.view = ContainersView
-		m.views.containers = Containers(m.size, namespace)
+		m.views.containers = Containers(namespace)
 
 		return m, func() tea.Msg {
 			ctx := context.Background()
@@ -109,7 +112,7 @@ func (m MainModel) handleEnter() (MainModel, tea.Cmd) {
 		container := c.Selected()
 
 		m.view = LogsView
-		m.views.logs = Logs(m.size, container)
+		m.views.logs = Logs(container)
 
 		return m, func() tea.Msg {
 			ctx := context.Background()
@@ -140,7 +143,12 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.err = msg.Err
 		return m, nil
 	case tea.WindowSizeMsg:
-		m.size = msg
+		x, y := appStyles.GetFrameSize()
+
+		m.size = tea.WindowSizeMsg{
+			Width:  msg.Width - x,
+			Height: msg.Height - y,
+		}
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "q", "ctrl+c":
@@ -166,12 +174,15 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case NamespacesView:
 		v, cmd = m.views.namespaces.Update(msg)
 		m.views.namespaces = v.(*NamespacesModel)
+		m.views.namespaces.model.SetSize(m.size.Width, m.size.Height)
 	case ContainersView:
 		v, cmd = m.views.containers.Update(msg)
 		m.views.containers = v.(*ContainersModel)
+		m.views.containers.model.SetSize(m.size.Width, m.size.Height)
 	case LogsView:
 		v, cmd = m.views.logs.Update(msg)
 		m.views.logs = v.(*LogsModel)
+		m.views.logs.model.SetSize(m.size.Width, m.size.Height)
 	}
 
 	return m, cmd

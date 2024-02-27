@@ -16,11 +16,8 @@ type LogsModel struct {
 	container ContainerListItem
 }
 
-func Logs(
-	size tea.WindowSizeMsg,
-	container ContainerListItem,
-) *LogsModel {
-	m := defaultListModel(size)
+func Logs(container ContainerListItem) *LogsModel {
+	m := defaultListModel()
 	m.SetFilteringEnabled(true)
 	m.Title = "logs"
 
@@ -46,9 +43,6 @@ func (m *LogsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.model.SetItems(items)
 		m.model.StopSpinner()
-	case tea.WindowSizeMsg:
-		m.model.SetWidth(msg.Width)
-		m.model.SetHeight(msg.Height - 2)
 	}
 
 	var cmd tea.Cmd

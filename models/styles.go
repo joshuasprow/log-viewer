@@ -2,11 +2,10 @@ package models
 
 import (
 	"github.com/charmbracelet/bubbles/list"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
-var defaultSize = tea.WindowSizeMsg{Width: 80, Height: 10}
+var appStyles = lipgloss.NewStyle().Width(80).Height(10).Padding(0, 2)
 
 var listItemStyles = struct {
 	Normal   lipgloss.Style

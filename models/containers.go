@@ -22,11 +22,8 @@ type ContainersModel struct {
 	namespace string
 }
 
-func Containers(
-	size tea.WindowSizeMsg,
-	namespace string,
-) *ContainersModel {
-	m := defaultListModel(size)
+func Containers(namespace string) *ContainersModel {
+	m := defaultListModel()
 	m.SetFilteringEnabled(true)
 	m.Title = "containers"
 
@@ -42,9 +39,6 @@ func (ContainersModel) Init() tea.Cmd { return nil }
 
 func (m *ContainersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case ErrMsg:
-		m.model.StopSpinner()
-		return m, nil // todo: return error Cmd ?
 	case ContainersMsg:
 		items := []list.Item{}
 
@@ -54,9 +48,6 @@ func (m *ContainersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.model.SetItems(items)
 		m.model.StopSpinner()
-	case tea.WindowSizeMsg:
-		m.model.SetWidth(msg.Width)
-		m.model.SetHeight(msg.Height - 2)
 	}
 
 	var cmd tea.Cmd

@@ -3,16 +3,10 @@ package models
 import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
-func defaultListModel(size tea.WindowSizeMsg) list.Model {
-	m := list.New(
-		[]list.Item{},
-		listItemDelegate{},
-		size.Width,
-		size.Height-2,
-	)
+func defaultListModel() list.Model {
+	m := list.New([]list.Item{}, listItemDelegate{}, 0, 0)
 
 	m.SetFilteringEnabled(false)
 	m.SetShowStatusBar(false)

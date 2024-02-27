@@ -21,7 +21,7 @@ func main() {
 	clientset, err := k8s.NewClientset(cfg.Kubeconfig)
 	check("create k8s clientset", err)
 
-	prg := tea.NewProgram(models.Main(clientset))
+	prg := tea.NewProgram(models.Main(clientset), tea.WithAltScreen())
 
 	_, err = prg.Run()
 	check("run program", err)

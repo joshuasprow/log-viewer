@@ -17,9 +17,8 @@ type NamespacesModel struct {
 	model     list.Model
 }
 
-func Namespaces(size tea.WindowSizeMsg) *NamespacesModel {
-	m := defaultListModel(size)
-	m.SetFilteringEnabled(true)
+func Namespaces() *NamespacesModel {
+	m := defaultListModel()
 	m.Title = "namespaces"
 
 	m.StartSpinner()
@@ -40,9 +39,6 @@ func (m *NamespacesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.model.SetItems(items)
 		m.model.StopSpinner()
-	case tea.WindowSizeMsg:
-		m.model.SetWidth(msg.Width)
-		m.model.SetHeight(msg.Height - 2)
 	}
 
 	var cmd tea.Cmd
