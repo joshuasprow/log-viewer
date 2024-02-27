@@ -15,19 +15,15 @@ func (n ContainerListItem) FilterValue() string {
 }
 
 type ContainersModel struct {
-	model     list.Model
-	namespace string
+	model list.Model
 }
 
-func Containers(namespace string) *ContainersModel {
+func Containers() *ContainersModel {
 	m := defaultListModel()
 	m.SetFilteringEnabled(true)
 	m.Title = "containers"
 
-	return &ContainersModel{
-		model:     m,
-		namespace: namespace,
-	}
+	return &ContainersModel{model: m}
 }
 
 func (ContainersModel) Init() tea.Cmd { return nil }
@@ -48,11 +44,8 @@ func (m *ContainersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	m.model, cmd = m.model.Update(msg)
-	if cmd != nil {
-		return m, cmd
-	}
 
-	return m, nil
+	return m, cmd
 }
 
 func (m *ContainersModel) View() string {

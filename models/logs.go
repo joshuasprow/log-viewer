@@ -12,8 +12,7 @@ func (i logListItem) FilterValue() string {
 }
 
 type LogsModel struct {
-	model     list.Model
-	container ContainerListItem
+	model list.Model
 }
 
 func Logs(container ContainerListItem) *LogsModel {
@@ -21,19 +20,13 @@ func Logs(container ContainerListItem) *LogsModel {
 	m.SetFilteringEnabled(true)
 	m.Title = "logs"
 
-	return &LogsModel{
-		model:     m,
-		container: container,
-	}
+	return &LogsModel{model: m}
 }
 
 func (LogsModel) Init() tea.Cmd { return nil }
 
 func (m *LogsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case ErrMsg:
-		m.model.StopSpinner()
-		return m, nil // todo: return error Cmd ?
 	case LogsMsg:
 		items := []list.Item{}
 
@@ -48,11 +41,8 @@ func (m *LogsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	m.model, cmd = m.model.Update(msg)
-	if cmd != nil {
-		return m, cmd
-	}
 
-	return m, nil
+	return m, cmd
 }
 
 func (m *LogsModel) View() string {
