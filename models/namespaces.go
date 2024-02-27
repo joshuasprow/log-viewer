@@ -21,8 +21,6 @@ func Namespaces() *NamespacesModel {
 	m := defaultListModel()
 	m.Title = "namespaces"
 
-	m.StartSpinner()
-
 	return &NamespacesModel{model: m}
 }
 
@@ -44,11 +42,8 @@ func (m *NamespacesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	m.model, cmd = m.model.Update(msg)
-	if cmd != nil {
-		return m, cmd
-	}
 
-	return m, nil
+	return m, cmd
 }
 
 func (m *NamespacesModel) View() string {

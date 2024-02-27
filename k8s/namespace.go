@@ -15,7 +15,6 @@ func GetNamespaces(
 	[]string,
 	error,
 ) {
-
 	list, err := clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("list namespaces: %w", err)

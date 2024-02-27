@@ -5,7 +5,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-var appStyles = lipgloss.NewStyle().Width(80).Height(10).Padding(0, 2)
+var appStyles = lipgloss.NewStyle().Width(80).Height(10)
 
 var listItemStyles = struct {
 	Normal   lipgloss.Style
@@ -16,16 +16,19 @@ var listItemStyles = struct {
 }
 
 var listStyles = struct {
-	Filter     lipgloss.Style
 	Help       lipgloss.Style
+	NoItems    lipgloss.Style
 	Pagination lipgloss.Style
 	QuitText   lipgloss.Style
+	Spinner    lipgloss.Style
 	Title      lipgloss.Style
 	TitleBar   lipgloss.Style
 }{
 	Help:       list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1),
+	NoItems:    lipgloss.NewStyle().PaddingLeft(4),
 	Pagination: lipgloss.NewStyle().PaddingLeft(4),
 	QuitText:   lipgloss.NewStyle().Margin(1, 0, 2, 4),
-	Title:      lipgloss.NewStyle().MarginLeft(4).Foreground(lipgloss.Color("205")),
-	TitleBar:   lipgloss.NewStyle(),
+	Spinner:    lipgloss.NewStyle(),
+	Title:      lipgloss.NewStyle().Foreground(lipgloss.Color("205")),
+	TitleBar:   lipgloss.NewStyle().PaddingLeft(4),
 }

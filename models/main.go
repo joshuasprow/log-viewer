@@ -30,16 +30,19 @@ func Main(clientset *kubernetes.Clientset) MainModel {
 }
 
 func (m MainModel) Init() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
+	return tea.Batch(
+		m.views.namespaces.model.StartSpinner(),
+		func() tea.Msg {
+			ctx := context.Background()
 
-		namespaces, err := k8s.GetNamespaces(ctx, m.clientset)
-		if err != nil {
-			return ErrMsg{Err: fmt.Errorf("load model data: %w", err)}
-		}
+			namespaces, err := k8s.GetNamespaces(ctx, m.clientset)
+			if err != nil {
+				return ErrMsg{Err: fmt.Errorf("load model data: %w", err)}
+			}
 
-		return NamespacesMsg(namespaces)
-	}
+			return NamespacesMsg(namespaces)
+		},
+	)
 }
 
 func (m MainModel) handleEnter() (MainModel, tea.Cmd) {
@@ -56,16 +59,19 @@ func (m MainModel) handleEnter() (MainModel, tea.Cmd) {
 		m.view = ContainersView
 		m.views.containers = Containers(namespace)
 
-		return m, func() tea.Msg {
-			ctx := context.Background()
+		return m, tea.Batch(
+			m.views.containers.model.StartSpinner(),
+			func() tea.Msg {
+				ctx := context.Background()
 
-			containers, err := k8s.GetContainers(ctx, m.clientset, namespace)
-			if err != nil {
-				return ErrMsg{Err: fmt.Errorf("get containers: %w", err)}
-			}
+				containers, err := k8s.GetContainers(ctx, m.clientset, namespace)
+				if err != nil {
+					return ErrMsg{Err: fmt.Errorf("get containers: %w", err)}
+				}
 
-			return ContainersMsg(containers)
-		}
+				return ContainersMsg(containers)
+			},
+		)
 	case ContainersView:
 		c := m.views.containers
 		if c == nil {
@@ -78,22 +84,25 @@ func (m MainModel) handleEnter() (MainModel, tea.Cmd) {
 		m.view = LogsView
 		m.views.logs = Logs(container)
 
-		return m, func() tea.Msg {
-			ctx := context.Background()
+		return m, tea.Batch(
+			m.views.logs.model.StartSpinner(),
+			func() tea.Msg {
+				ctx := context.Background()
 
-			logs, err := k8s.GetPodLogs(
-				ctx,
-				m.clientset,
-				container.Namespace,
-				container.Pod,
-				container.Name,
-			)
-			if err != nil {
-				return ErrMsg{Err: fmt.Errorf("get pod logs: %w", err)}
-			}
+				logs, err := k8s.GetPodLogs(
+					ctx,
+					m.clientset,
+					container.Namespace,
+					container.Pod,
+					container.Name,
+				)
+				if err != nil {
+					return ErrMsg{Err: fmt.Errorf("get pod logs: %w", err)}
+				}
 
-			return LogsMsg(logs)
-		}
+				return LogsMsg(logs)
+			},
+		)
 	}
 
 	return m, nil

@@ -24,8 +24,6 @@ func Containers(namespace string) *ContainersModel {
 	m.SetFilteringEnabled(true)
 	m.Title = "containers"
 
-	m.StartSpinner()
-
 	return &ContainersModel{
 		model:     m,
 		namespace: namespace,

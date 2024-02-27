@@ -3,6 +3,7 @@ package models
 import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/spinner"
 )
 
 func defaultListModel() list.Model {
@@ -10,6 +11,7 @@ func defaultListModel() list.Model {
 
 	m.SetFilteringEnabled(false)
 	m.SetShowStatusBar(false)
+	m.SetSpinner(spinner.Dot)
 
 	// prevents esc as a quit key
 	m.KeyMap.Quit = key.NewBinding(
@@ -26,6 +28,7 @@ func defaultListModel() list.Model {
 		}
 	}
 
+	m.Styles.NoItems = listStyles.NoItems
 	m.Styles.HelpStyle = listStyles.Help
 	m.Styles.PaginationStyle = listStyles.Pagination
 	m.Styles.Title = listStyles.Title
