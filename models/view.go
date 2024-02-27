@@ -7,3 +7,9 @@ const (
 	ContainersView ViewKey = "containers"
 	LogsView       ViewKey = "logs"
 )
+
+type Views struct {
+	namespaces *NamespacesModel
+	containers *ContainersModel
+	logs       *LogsModel
+}

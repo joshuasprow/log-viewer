@@ -30,7 +30,7 @@ func Containers(
 	clientset *kubernetes.Clientset,
 	size tea.WindowSizeMsg,
 	namespace string,
-) tea.Model {
+) *ContainersModel {
 	m := defaultListModel(size)
 	m.SetFilteringEnabled(true)
 	m.Title = "containers"

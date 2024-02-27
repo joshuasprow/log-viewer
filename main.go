@@ -13,7 +13,6 @@ import (
 
 var (
 	defaultSize = tea.WindowSizeMsg{Width: 80, Height: 10}
-	views       = map[models.ViewKey]tea.Model{}
 )
 
 func main() {

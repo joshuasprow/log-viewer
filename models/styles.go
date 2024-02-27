@@ -17,15 +17,16 @@ var listItemStyles = struct {
 }
 
 var listStyles = struct {
-	Pagination lipgloss.Style
+	Filter     lipgloss.Style
 	Help       lipgloss.Style
+	Pagination lipgloss.Style
+	QuitText   lipgloss.Style
 	Title      lipgloss.Style
 	TitleBar   lipgloss.Style
-	QuitText   lipgloss.Style
 }{
-	Pagination: lipgloss.NewStyle().PaddingLeft(4),
 	Help:       list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1),
+	Pagination: lipgloss.NewStyle().PaddingLeft(4),
+	QuitText:   lipgloss.NewStyle().Margin(1, 0, 2, 4),
 	Title:      lipgloss.NewStyle().MarginLeft(4).Foreground(lipgloss.Color("205")),
 	TitleBar:   lipgloss.NewStyle(),
-	QuitText:   lipgloss.NewStyle().Margin(1, 0, 2, 4),
 }

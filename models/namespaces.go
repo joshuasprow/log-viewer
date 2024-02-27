@@ -21,7 +21,7 @@ type NamespacesModel struct {
 	model     list.Model
 }
 
-func Namespaces(clientset *kubernetes.Clientset, size tea.WindowSizeMsg) tea.Model {
+func Namespaces(clientset *kubernetes.Clientset, size tea.WindowSizeMsg) *NamespacesModel {
 	m := defaultListModel(size)
 	m.SetFilteringEnabled(true)
 	m.Title = "namespaces"

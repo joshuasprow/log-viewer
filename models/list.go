@@ -23,8 +23,8 @@ func defaultListModel(size tea.WindowSizeMsg) list.Model {
 		key.WithHelp("q", "quit"),
 	)
 
-	m.Styles.PaginationStyle = listStyles.Pagination
 	m.Styles.HelpStyle = listStyles.Help
+	m.Styles.PaginationStyle = listStyles.Pagination
 	m.Styles.Title = listStyles.Title
 	m.Styles.TitleBar = listStyles.TitleBar
 

@@ -7,11 +7,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-var views = map[ViewKey]tea.Model{}
-
 type MainModel struct {
 	clientset *kubernetes.Clientset
 	view      ViewKey
+	views     Views
 	size      tea.WindowSizeMsg
 	err       error
 }
@@ -20,16 +19,35 @@ func Main(clientset *kubernetes.Clientset) MainModel {
 	return MainModel{
 		clientset: clientset,
 		view:      NamespacesView,
+		views:     Views{namespaces: Namespaces(clientset, defaultSize)},
 		size:      defaultSize,
 	}
 }
 
 func (m MainModel) Init() tea.Cmd {
-	views[NamespacesView] = Namespaces(m.clientset, defaultSize)
-	return views[NamespacesView].Init()
+	return m.views.namespaces.Init()
 }
 
 func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var v tea.Model
+	var cmd tea.Cmd
+
+	switch m.view {
+	case NamespacesView:
+		v, cmd = m.views.namespaces.Update(msg)
+		m.views.namespaces = v.(*NamespacesModel)
+	case ContainersView:
+		v, cmd = m.views.containers.Update(msg)
+		m.views.containers = v.(*ContainersModel)
+	case LogsView:
+		v, cmd = m.views.logs.Update(msg)
+		m.views.logs = v.(*LogsModel)
+	}
+
+	if cmd != nil {
+		return m, cmd
+	}
+
 	switch msg := msg.(type) {
 	case ErrMsg:
 		m.err = msg.Err
@@ -40,7 +58,7 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch keypress := msg.String(); keypress {
 		case "q", "ctrl+c":
 			return MainModel{}, tea.Quit
-		case "esc":
+		case tea.KeyLeft.String():
 			switch m.view {
 			case ContainersView:
 				m.view = NamespacesView
@@ -50,40 +68,29 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			switch m.view {
 			case NamespacesView:
-				v, ok := views[NamespacesView]
-				if !ok {
+				n := m.views.namespaces
+				if n == nil {
 					m.err = fmt.Errorf("failed to find namespace view")
-				}
-
-				n, ok := v.(*NamespacesModel)
-				if !ok {
-					m.err = fmt.Errorf("failed to cast %T as *NamespacesModel", v)
 					return m, nil
 				}
 
 				namespace := n.Selected()
 
-				view := Containers(m.clientset, m.size, namespace)
-				views[ContainersView] = view
 				m.view = ContainersView
+				m.views.containers = Containers(m.clientset, m.size, namespace)
 
-				return m, views[ContainersView].Init()
-
+				return m, m.views.containers.Init()
 			case ContainersView:
-				v, ok := views[ContainersView]
-				if !ok {
-					m.err = fmt.Errorf("failed to find containers view")
-				}
-
-				n, ok := v.(*ContainersModel)
-				if !ok {
-					m.err = fmt.Errorf("failed to cast %T as *ContainersModel", v)
+				c := m.views.containers
+				if c == nil {
+					m.err = fmt.Errorf("failed to find namespace view")
 					return m, nil
 				}
 
-				container := n.Selected()
+				container := c.Selected()
 
-				view := Logs(
+				m.view = LogsView
+				m.views.logs = Logs(
 					m.clientset,
 					m.size,
 					container.Namespace,
@@ -91,19 +98,12 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					container.Container,
 				)
 
-				views[LogsView] = view
-				m.view = LogsView
-
-				return m, views[LogsView].Init()
+				return m, m.views.logs.Init()
 			}
 		}
 	}
 
-	var cmd tea.Cmd
-
-	views[m.view], cmd = views[m.view].Update(msg)
-
-	return m, cmd
+	return m, nil
 }
 
 func (m MainModel) View() string {
@@ -111,10 +111,14 @@ func (m MainModel) View() string {
 		return m.err.Error()
 	}
 
-	view, ok := views[m.view]
-	if !ok {
-		return fmt.Sprintf("view not found: %s", m.view)
+	switch m.view {
+	case NamespacesView:
+		return m.views.namespaces.View()
+	case ContainersView:
+		return m.views.containers.View()
+	case LogsView:
+		return m.views.logs.View()
+	default:
+		return fmt.Sprintf("unknown view: %v", m.view)
 	}
-
-	return view.View()
 }

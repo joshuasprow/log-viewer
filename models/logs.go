@@ -30,7 +30,7 @@ func Logs(
 	namespace string,
 	pod string,
 	container string,
-) tea.Model {
+) *LogsModel {
 	m := defaultListModel(size)
 	m.SetFilteringEnabled(true)
 	m.Title = "logs"
