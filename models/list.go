@@ -17,6 +17,15 @@ func defaultListModel() list.Model {
 		key.WithHelp("q", "quit"),
 	)
 
+	m.AdditionalFullHelpKeys = func() []key.Binding {
+		return []key.Binding{
+			key.NewBinding(
+				key.WithKeys("esc"),
+				key.WithHelp("esc", "previous page"),
+			),
+		}
+	}
+
 	m.Styles.HelpStyle = listStyles.Help
 	m.Styles.PaginationStyle = listStyles.Pagination
 	m.Styles.Title = listStyles.Title

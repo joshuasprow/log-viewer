@@ -117,7 +117,7 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch keypress := msg.String(); keypress {
 		case "q", "ctrl+c":
 			return MainModel{}, tea.Quit
-		case tea.KeyLeft.String():
+		case "esc":
 			switch m.view {
 			case ContainersView:
 				m.view = NamespacesView
