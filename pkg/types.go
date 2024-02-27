@@ -1,4 +1,4 @@
-package k8s
+package pkg
 
 func Ptr[V any](v V) *V {
 	return &v

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/joshuasprow/log-viewer/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -27,7 +28,7 @@ func GetPodLogs(
 			pod,
 			&v1.PodLogOptions{
 				Container: container,
-				TailLines: Ptr(int64(10)),
+				TailLines: pkg.Ptr(int64(10)),
 			},
 		).
 		Do(ctx).
@@ -58,11 +59,11 @@ func StreamPodLogs(
 	namespace string,
 	pod string,
 	container string,
-	logsCh chan<- Result[string],
+	logsCh chan<- pkg.Result[string],
 ) {
 	defer close(logsCh)
 
-	type R = Result[string]
+	type R = pkg.Result[string]
 
 	req := clientset.
 		CoreV1().
@@ -72,7 +73,7 @@ func StreamPodLogs(
 			&v1.PodLogOptions{
 				Container: container,
 				Follow:    true,
-				TailLines: Ptr(int64(10)),
+				TailLines: pkg.Ptr(int64(10)),
 			},
 		)
 
