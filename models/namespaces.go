@@ -1,12 +1,8 @@
 package models
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/joshuasprow/log-viewer/k8s"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -21,39 +17,20 @@ type NamespacesModel struct {
 	model     list.Model
 }
 
-func Namespaces(clientset *kubernetes.Clientset, size tea.WindowSizeMsg) *NamespacesModel {
+func Namespaces(size tea.WindowSizeMsg) *NamespacesModel {
 	m := defaultListModel(size)
 	m.SetFilteringEnabled(true)
 	m.Title = "namespaces"
 
-	return &NamespacesModel{
-		clientset: clientset,
-		model:     m,
-	}
+	m.StartSpinner()
+
+	return &NamespacesModel{model: m}
 }
 
-func (m *NamespacesModel) initData() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-
-		namespaces, err := k8s.GetNamespaces(ctx, m.clientset)
-		if err != nil {
-			return ErrMsg{Err: fmt.Errorf("load model data: %w", err)}
-		}
-
-		return NamespacesMsg(namespaces)
-	}
-}
-
-func (m *NamespacesModel) Init() tea.Cmd {
-	return tea.Batch(m.model.StartSpinner(), m.initData())
-}
+func (NamespacesModel) Init() tea.Cmd { return nil }
 
 func (m *NamespacesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case ErrMsg:
-		m.model.StopSpinner()
-		return m, nil // todo: return error Cmd ?
 	case NamespacesMsg:
 		items := []list.Item{}
 

@@ -1,13 +1,10 @@
 package models
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/joshuasprow/log-viewer/k8s"
-	"k8s.io/client-go/kubernetes"
 )
 
 type ContainerListItem struct {
@@ -21,13 +18,11 @@ func (n ContainerListItem) FilterValue() string {
 }
 
 type ContainersModel struct {
-	clientset *kubernetes.Clientset
 	model     list.Model
 	namespace string
 }
 
 func Containers(
-	clientset *kubernetes.Clientset,
 	size tea.WindowSizeMsg,
 	namespace string,
 ) *ContainersModel {
@@ -35,49 +30,15 @@ func Containers(
 	m.SetFilteringEnabled(true)
 	m.Title = "containers"
 
+	m.StartSpinner()
+
 	return &ContainersModel{
-		clientset: clientset,
 		model:     m,
 		namespace: namespace,
 	}
 }
 
-func (m *ContainersModel) initData() tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-
-		pods, err := k8s.GetPods(ctx, m.clientset, m.namespace)
-		if err != nil {
-			return ErrMsg{Err: fmt.Errorf("load model data: %w", err)}
-		}
-
-		containers := []ContainerListItem{}
-
-		for _, pod := range pods {
-			if len(pod.Spec.Containers) == 0 {
-				containers = append(containers, ContainerListItem{
-					Namespace: pod.Namespace,
-					Pod:       pod.Name,
-				})
-				continue
-			}
-
-			for _, container := range pod.Spec.Containers {
-				containers = append(containers, ContainerListItem{
-					Namespace: pod.Namespace,
-					Pod:       pod.Name,
-					Container: container.Name,
-				})
-			}
-		}
-
-		return ContainersMsg(containers)
-	}
-}
-
-func (m *ContainersModel) Init() tea.Cmd {
-	return tea.Batch(m.model.StartSpinner(), m.initData())
-}
+func (ContainersModel) Init() tea.Cmd { return nil }
 
 func (m *ContainersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {

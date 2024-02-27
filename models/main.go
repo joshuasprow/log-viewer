@@ -1,9 +1,11 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/joshuasprow/log-viewer/k8s"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -19,34 +21,119 @@ func Main(clientset *kubernetes.Clientset) MainModel {
 	return MainModel{
 		clientset: clientset,
 		view:      NamespacesView,
-		views:     Views{namespaces: Namespaces(clientset, defaultSize)},
+		views:     Views{namespaces: Namespaces(defaultSize)},
 		size:      defaultSize,
 	}
 }
 
 func (m MainModel) Init() tea.Cmd {
-	return m.views.namespaces.Init()
+	return func() tea.Msg {
+		ctx := context.Background()
+
+		namespaces, err := k8s.GetNamespaces(ctx, m.clientset)
+		if err != nil {
+			return ErrMsg{Err: fmt.Errorf("load model data: %w", err)}
+		}
+
+		return NamespacesMsg(namespaces)
+	}
+}
+
+func getContainers(
+	ctx context.Context,
+	clientset *kubernetes.Clientset,
+	namespace string,
+) (
+	[]ContainerListItem,
+	error,
+) {
+	pods, err := k8s.GetPods(ctx, clientset, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("load model data: %w", err)
+	}
+
+	containers := []ContainerListItem{}
+
+	for _, pod := range pods {
+		if len(pod.Spec.Containers) == 0 {
+			containers = append(containers, ContainerListItem{
+				Namespace: pod.Namespace,
+				Pod:       pod.Name,
+			})
+			continue
+		}
+
+		for _, container := range pod.Spec.Containers {
+			containers = append(containers, ContainerListItem{
+				Namespace: pod.Namespace,
+				Pod:       pod.Name,
+				Container: container.Name,
+			})
+		}
+	}
+
+	return containers, nil
+}
+
+func (m MainModel) handleEnter() (MainModel, tea.Cmd) {
+	switch m.view {
+	case NamespacesView:
+		n := m.views.namespaces
+		if n == nil {
+			m.err = fmt.Errorf("failed to find namespace view")
+			return m, nil
+		}
+
+		namespace := n.Selected()
+
+		m.view = ContainersView
+		m.views.containers = Containers(m.size, namespace)
+
+		return m, func() tea.Msg {
+			ctx := context.Background()
+
+			containers, err := getContainers(ctx, m.clientset, namespace)
+			if err != nil {
+				return ErrMsg{Err: fmt.Errorf("get containers: %w", err)}
+			}
+
+			return ContainersMsg(containers)
+		}
+	case ContainersView:
+		c := m.views.containers
+		if c == nil {
+			m.err = fmt.Errorf("failed to find containers view")
+			return m, nil
+		}
+
+		container := c.Selected()
+
+		m.view = LogsView
+		m.views.logs = Logs(m.size, container)
+
+		return m, func() tea.Msg {
+			ctx := context.Background()
+
+			logs, err := k8s.GetPodLogs(
+				ctx,
+				m.clientset,
+				container.Namespace,
+				container.Pod,
+				container.Container,
+			)
+			if err != nil {
+				return ErrMsg{Err: fmt.Errorf("get pod logs: %w", err)}
+			}
+
+			return LogsMsg(logs)
+		}
+	}
+
+	return m, nil
 }
 
 func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var v tea.Model
 	var cmd tea.Cmd
-
-	switch m.view {
-	case NamespacesView:
-		v, cmd = m.views.namespaces.Update(msg)
-		m.views.namespaces = v.(*NamespacesModel)
-	case ContainersView:
-		v, cmd = m.views.containers.Update(msg)
-		m.views.containers = v.(*ContainersModel)
-	case LogsView:
-		v, cmd = m.views.logs.Update(msg)
-		m.views.logs = v.(*LogsModel)
-	}
-
-	if cmd != nil {
-		return m, cmd
-	}
 
 	switch msg := msg.(type) {
 	case ErrMsg:
@@ -66,44 +153,28 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.view = ContainersView
 			}
 		case "enter":
-			switch m.view {
-			case NamespacesView:
-				n := m.views.namespaces
-				if n == nil {
-					m.err = fmt.Errorf("failed to find namespace view")
-					return m, nil
-				}
-
-				namespace := n.Selected()
-
-				m.view = ContainersView
-				m.views.containers = Containers(m.clientset, m.size, namespace)
-
-				return m, m.views.containers.Init()
-			case ContainersView:
-				c := m.views.containers
-				if c == nil {
-					m.err = fmt.Errorf("failed to find namespace view")
-					return m, nil
-				}
-
-				container := c.Selected()
-
-				m.view = LogsView
-				m.views.logs = Logs(
-					m.clientset,
-					m.size,
-					container.Namespace,
-					container.Pod,
-					container.Container,
-				)
-
-				return m, m.views.logs.Init()
+			m, cmd = m.handleEnter()
+			if cmd != nil {
+				return m, cmd
 			}
 		}
 	}
 
-	return m, nil
+	var v tea.Model
+
+	switch m.view {
+	case NamespacesView:
+		v, cmd = m.views.namespaces.Update(msg)
+		m.views.namespaces = v.(*NamespacesModel)
+	case ContainersView:
+		v, cmd = m.views.containers.Update(msg)
+		m.views.containers = v.(*ContainersModel)
+	case LogsView:
+		v, cmd = m.views.logs.Update(msg)
+		m.views.logs = v.(*LogsModel)
+	}
+
+	return m, cmd
 }
 
 func (m MainModel) View() string {
