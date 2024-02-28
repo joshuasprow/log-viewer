@@ -15,4 +15,6 @@ type Namespaces []string
 
 type Containers []k8s.Container
 
+type CronJobs []string
+
 type Logs []string

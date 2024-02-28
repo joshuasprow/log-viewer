@@ -20,6 +20,7 @@ type MainModel struct {
 	// views
 	namespaces NamespacesModel
 	containers ContainersModel
+	cronJobs   CronJobsModel
 	logs       LogsModel
 }
 
@@ -34,6 +35,7 @@ func Main(clientset *kubernetes.Clientset) MainModel {
 
 		namespaces: Namespaces(),
 		containers: Containers(),
+		cronJobs:   CronJobs(),
 		logs:       Logs(),
 	}
 }
@@ -46,7 +48,9 @@ func (m MainModel) Init() tea.Cmd {
 
 			namespaces, err := k8s.GetNamespaces(ctx, m.clientset)
 			if err != nil {
-				return messages.Error{Err: fmt.Errorf("load model data: %w", err)}
+				return messages.Error{
+					Err: fmt.Errorf("load model data: %w", err),
+				}
 			}
 
 			return messages.Namespaces(namespaces)
@@ -59,20 +63,27 @@ func (m MainModel) handleEnter() (MainModel, tea.Cmd) {
 	case NamespacesView:
 		namespace := m.namespaces.Selected()
 
-		m.view = ContainersView
-		m.containers = Containers()
+		// todo: refactor cronJobs and containers as children of namespaces
+		m.view = CronJobsView
+		m.cronJobs = CronJobs()
 
 		return m, tea.Batch(
-			m.containers.model.StartSpinner(),
+			m.cronJobs.model.StartSpinner(),
 			func() tea.Msg {
 				ctx := context.Background()
 
-				containers, err := k8s.GetContainers(ctx, m.clientset, namespace)
+				cronJobs, err := k8s.GetCronJobs(
+					ctx,
+					m.clientset,
+					namespace,
+				)
 				if err != nil {
-					return messages.Error{Err: fmt.Errorf("get containers: %w", err)}
+					return messages.Error{
+						Err: fmt.Errorf("get cronJobs: %w", err),
+					}
 				}
 
-				return messages.Containers(containers)
+				return messages.CronJobs(cronJobs)
 			},
 		)
 	case ContainersView:
@@ -94,7 +105,9 @@ func (m MainModel) handleEnter() (MainModel, tea.Cmd) {
 					container.Name,
 				)
 				if err != nil {
-					return messages.Error{Err: fmt.Errorf("get pod logs: %w", err)}
+					return messages.Error{
+						Err: fmt.Errorf("get pod logs: %w", err),
+					}
 				}
 
 				return messages.Logs(logs)
@@ -128,6 +141,8 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.view {
 			case ContainersView:
 				m.view = NamespacesView
+			case CronJobsView:
+				m.view = NamespacesView
 			case LogsView:
 				m.view = ContainersView
 			}
@@ -146,6 +161,9 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ContainersView:
 		m.containers, cmd = m.containers.Update(msg)
 		m.containers.model.SetSize(m.size.Width, m.size.Height)
+	case CronJobsView:
+		m.cronJobs, cmd = m.cronJobs.Update(msg)
+		m.cronJobs.model.SetSize(m.size.Width, m.size.Height)
 	case LogsView:
 		m.logs, cmd = m.logs.Update(msg)
 		m.logs.model.SetSize(m.size.Width, m.size.Height)
@@ -164,6 +182,8 @@ func (m MainModel) View() string {
 		return m.namespaces.View()
 	case ContainersView:
 		return m.containers.View()
+	case CronJobsView:
+		return m.cronJobs.View()
 	case LogsView:
 		return m.logs.View()
 	default:
