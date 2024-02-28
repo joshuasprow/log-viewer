@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joshuasprow/log-viewer/k8s"
 	"github.com/joshuasprow/log-viewer/messages"
+	"github.com/joshuasprow/log-viewer/styles"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -27,8 +28,8 @@ func Main(clientset *kubernetes.Clientset) MainModel {
 		clientset: clientset,
 		view:      NamespacesView,
 		size: tea.WindowSizeMsg{
-			Width:  appStyles.GetWidth(),
-			Height: appStyles.GetHeight(),
+			Width:  styles.App.GetWidth(),
+			Height: styles.App.GetHeight(),
 		},
 
 		namespaces: Namespaces(),
@@ -113,7 +114,7 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case tea.WindowSizeMsg:
 		// todo: this can't be right
-		x, y := appStyles.GetFrameSize()
+		x, y := styles.App.GetFrameSize()
 
 		m.size = tea.WindowSizeMsg{
 			Width:  msg.Width - x,

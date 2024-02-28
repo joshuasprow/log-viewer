@@ -1,13 +1,13 @@
-package models
+package styles
 
 import (
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/lipgloss"
 )
 
-var appStyles = lipgloss.NewStyle().Width(80).Height(10)
+var App = lipgloss.NewStyle().Width(80).Height(10)
 
-var listItemStyles = struct {
+var ListItem = struct {
 	Normal   lipgloss.Style
 	Selected lipgloss.Style
 }{
@@ -15,7 +15,7 @@ var listItemStyles = struct {
 	Selected: lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("170")),
 }
 
-var listStyles = struct {
+var List = struct {
 	Help       lipgloss.Style
 	NoItems    lipgloss.Style
 	Pagination lipgloss.Style

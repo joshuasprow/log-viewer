@@ -4,6 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/joshuasprow/log-viewer/styles"
 )
 
 func defaultListModel() list.Model {
@@ -28,11 +29,11 @@ func defaultListModel() list.Model {
 		}
 	}
 
-	m.Styles.NoItems = listStyles.NoItems
-	m.Styles.HelpStyle = listStyles.Help
-	m.Styles.PaginationStyle = listStyles.Pagination
-	m.Styles.Title = listStyles.Title
-	m.Styles.TitleBar = listStyles.TitleBar
+	m.Styles.NoItems = styles.List.NoItems
+	m.Styles.HelpStyle = styles.List.Help
+	m.Styles.PaginationStyle = styles.List.Pagination
+	m.Styles.Title = styles.List.Title
+	m.Styles.TitleBar = styles.List.TitleBar
 
 	return m
 }
