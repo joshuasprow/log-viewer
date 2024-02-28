@@ -10,10 +10,6 @@ import (
 	"github.com/joshuasprow/log-viewer/pkg"
 )
 
-var (
-	defaultSize = tea.WindowSizeMsg{Width: 80, Height: 10}
-)
-
 func main() {
 	cfg, err := pkg.LoadConfig()
 	check("load config", err)

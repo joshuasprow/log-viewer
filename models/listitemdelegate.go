@@ -28,11 +28,6 @@ func (d listItemDelegate) Render(
 	index int,
 	item list.Item,
 ) {
-	i, ok := item.(list.Item)
-	if !ok {
-		return
-	}
-
 	fn := styles.ListItem.Normal.Render
 	if index == m.Index() {
 		fn = func(s ...string) string {
@@ -40,7 +35,7 @@ func (d listItemDelegate) Render(
 		}
 	}
 
-	_, err := fmt.Fprint(w, fn(i.FilterValue()))
+	_, err := fmt.Fprint(w, fn(item.FilterValue()))
 	if err != nil {
 		// todo: panic with custom error and handle in main model
 		panic(fmt.Errorf("render list item: %w", err))
