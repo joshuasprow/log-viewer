@@ -1,11 +1,10 @@
 package models
 
 import (
-	"context"
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/joshuasprow/log-viewer/k8s"
+	"github.com/joshuasprow/log-viewer/commands"
 	"github.com/joshuasprow/log-viewer/messages"
 	"github.com/joshuasprow/log-viewer/styles"
 	"k8s.io/client-go/kubernetes"
@@ -43,18 +42,7 @@ func Main(clientset *kubernetes.Clientset) MainModel {
 func (m MainModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.namespaces.model.StartSpinner(),
-		func() tea.Msg {
-			ctx := context.Background()
-
-			namespaces, err := k8s.GetNamespaces(ctx, m.clientset)
-			if err != nil {
-				return messages.Error{
-					Err: fmt.Errorf("load model data: %w", err),
-				}
-			}
-
-			return messages.Namespaces(namespaces)
-		},
+		commands.GetNamespaces(m.clientset),
 	)
 }
 
@@ -69,22 +57,7 @@ func (m MainModel) handleEnter() (MainModel, tea.Cmd) {
 
 		return m, tea.Batch(
 			m.cronJobs.model.StartSpinner(),
-			func() tea.Msg {
-				ctx := context.Background()
-
-				cronJobs, err := k8s.GetCronJobs(
-					ctx,
-					m.clientset,
-					namespace,
-				)
-				if err != nil {
-					return messages.Error{
-						Err: fmt.Errorf("get cronJobs: %w", err),
-					}
-				}
-
-				return messages.CronJobs(cronJobs)
-			},
+			commands.GetCronJobs(m.clientset, namespace),
 		)
 	case ContainersView:
 		container := m.containers.Selected()
@@ -94,24 +67,12 @@ func (m MainModel) handleEnter() (MainModel, tea.Cmd) {
 
 		return m, tea.Batch(
 			m.logs.model.StartSpinner(),
-			func() tea.Msg {
-				ctx := context.Background()
-
-				logs, err := k8s.GetPodLogs(
-					ctx,
-					m.clientset,
-					container.Namespace,
-					container.Pod,
-					container.Name,
-				)
-				if err != nil {
-					return messages.Error{
-						Err: fmt.Errorf("get pod logs: %w", err),
-					}
-				}
-
-				return messages.Logs(logs)
-			},
+			commands.GetLogs(
+				m.clientset,
+				container.Namespace,
+				container.Pod,
+				container.Name,
+			),
 		)
 	}
 
