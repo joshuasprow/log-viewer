@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joshuasprow/log-viewer/k8s"
+	"github.com/joshuasprow/log-viewer/messages"
 )
 
 type ContainerListItem k8s.Container
@@ -31,7 +32,7 @@ func (ContainersModel) Init() tea.Cmd { return nil }
 
 func (m ContainersModel) Update(msg tea.Msg) (ContainersModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case ContainersMsg:
+	case messages.Containers:
 		items := []list.Item{}
 
 		for _, c := range msg {

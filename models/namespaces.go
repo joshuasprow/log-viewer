@@ -3,6 +3,7 @@ package models
 import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/joshuasprow/log-viewer/messages"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -29,7 +30,7 @@ func (NamespacesModel) Init() tea.Cmd { return nil }
 
 func (m NamespacesModel) Update(msg tea.Msg) (NamespacesModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case NamespacesMsg:
+	case messages.Namespaces:
 		items := []list.Item{}
 
 		for _, namespace := range msg {

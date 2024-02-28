@@ -3,6 +3,7 @@ package models
 import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/joshuasprow/log-viewer/messages"
 )
 
 type logListItem string
@@ -28,7 +29,7 @@ func (LogsModel) Init() tea.Cmd { return nil }
 
 func (m LogsModel) Update(msg tea.Msg) (LogsModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case LogsMsg:
+	case messages.Logs:
 		items := []list.Item{}
 
 		for _, i := range msg {

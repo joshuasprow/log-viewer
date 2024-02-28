@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joshuasprow/log-viewer/k8s"
+	"github.com/joshuasprow/log-viewer/messages"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -44,10 +45,10 @@ func (m MainModel) Init() tea.Cmd {
 
 			namespaces, err := k8s.GetNamespaces(ctx, m.clientset)
 			if err != nil {
-				return ErrMsg{Err: fmt.Errorf("load model data: %w", err)}
+				return messages.Error{Err: fmt.Errorf("load model data: %w", err)}
 			}
 
-			return NamespacesMsg(namespaces)
+			return messages.Namespaces(namespaces)
 		},
 	)
 }
@@ -67,10 +68,10 @@ func (m MainModel) handleEnter() (MainModel, tea.Cmd) {
 
 				containers, err := k8s.GetContainers(ctx, m.clientset, namespace)
 				if err != nil {
-					return ErrMsg{Err: fmt.Errorf("get containers: %w", err)}
+					return messages.Error{Err: fmt.Errorf("get containers: %w", err)}
 				}
 
-				return ContainersMsg(containers)
+				return messages.Containers(containers)
 			},
 		)
 	case ContainersView:
@@ -92,10 +93,10 @@ func (m MainModel) handleEnter() (MainModel, tea.Cmd) {
 					container.Name,
 				)
 				if err != nil {
-					return ErrMsg{Err: fmt.Errorf("get pod logs: %w", err)}
+					return messages.Error{Err: fmt.Errorf("get pod logs: %w", err)}
 				}
 
-				return LogsMsg(logs)
+				return messages.Logs(logs)
 			},
 		)
 	}
@@ -107,10 +108,11 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case ErrMsg:
+	case messages.Error:
 		m.err = msg.Err
 		return m, nil
 	case tea.WindowSizeMsg:
+		// todo: this can't be right
 		x, y := appStyles.GetFrameSize()
 
 		m.size = tea.WindowSizeMsg{
