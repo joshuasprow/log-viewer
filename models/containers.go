@@ -21,7 +21,7 @@ type ContainersModel struct {
 }
 
 func Containers() ContainersModel {
-	m := defaultListModel()
+	m := DefaultListModel()
 	m.SetFilteringEnabled(true)
 	m.Title = "containers"
 

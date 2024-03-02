@@ -7,7 +7,7 @@ import (
 	"github.com/joshuasprow/log-viewer/styles"
 )
 
-func defaultListModel() list.Model {
+func DefaultListModel() list.Model {
 	m := list.New([]list.Item{}, listItemDelegate{}, 0, 0)
 
 	m.SetFilteringEnabled(false)

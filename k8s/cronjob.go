@@ -8,6 +8,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+type CronJob struct {
+	Namespace string
+	Name      string
+}
+
 func GetCronJobs(
 	ctx context.Context,
 	clientset *kubernetes.Clientset,

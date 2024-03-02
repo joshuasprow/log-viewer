@@ -18,7 +18,7 @@ type LogsModel struct {
 }
 
 func Logs() LogsModel {
-	m := defaultListModel()
+	m := DefaultListModel()
 	m.SetFilteringEnabled(true)
 	m.Title = "logs"
 

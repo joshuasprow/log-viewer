@@ -20,7 +20,7 @@ type CronJobsModel struct {
 }
 
 func CronJobs() CronJobsModel {
-	m := defaultListModel()
+	m := DefaultListModel()
 	m.Title = "cronJobs"
 
 	return CronJobsModel{model: &m}

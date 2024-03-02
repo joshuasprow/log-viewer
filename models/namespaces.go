@@ -20,7 +20,7 @@ type NamespacesModel struct {
 }
 
 func Namespaces() NamespacesModel {
-	m := defaultListModel()
+	m := DefaultListModel()
 	m.Title = "namespaces"
 
 	return NamespacesModel{model: &m}
