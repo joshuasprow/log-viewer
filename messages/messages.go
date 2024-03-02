@@ -11,16 +11,16 @@ func (e Error) Error() string {
 	return e.Err.Error()
 }
 
-type NamespaceView string
+type Api string
 
 const (
-	NamespaceViewContainers NamespaceView = "containers"
-	NamespaceViewCronJobs   NamespaceView = "cronJobs"
+	ContainersApi Api = "containers"
+	CronJobsApi   Api = "cronJobs"
 )
 
 type Namespace struct {
 	Name string
-	View NamespaceView
+	Api  Api
 }
 
 type Namespaces []string
@@ -29,6 +29,6 @@ type Container k8s.Container
 type Containers []k8s.Container
 
 type CronJob k8s.CronJob
-type CronJobs []string
+type CronJobs []k8s.CronJob
 
 type Logs []string

@@ -34,7 +34,7 @@ func (m CronJobsModel) Update(msg tea.Msg) (CronJobsModel, tea.Cmd) {
 		items := []list.Item{}
 
 		for _, cronJob := range msg {
-			items = append(items, cronJobListItem(cronJob))
+			items = append(items, cronJobListItem(cronJob.Name))
 		}
 
 		m.model.SetItems(items)

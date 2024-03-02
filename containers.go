@@ -12,7 +12,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-
 type containerListItem k8s.Container
 
 func (n containerListItem) FilterValue() string {
@@ -46,7 +45,7 @@ func newContainersModel(
 func (m containersModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.model.StartSpinner(),
-		commands.GetCronJobs(m.clientset, m.namespace),
+		commands.GetContainers(m.clientset, m.namespace),
 	)
 }
 

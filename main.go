@@ -34,6 +34,8 @@ func main() {
 				prg.Send(m)
 			case messages.Container:
 				prg.Send(m)
+			case messages.CronJob:
+				prg.Send(m)
 			}
 		}
 	}()
@@ -74,20 +76,23 @@ func (m mainModel) Init() tea.Cmd {
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case messages.Namespace:
-		switch msg.View {
+		switch msg.Api {
 		case "":
-		case messages.NamespaceViewContainers:
+			m.view = newApisViewModel(m.clientset, msg.Name, m.msgCh)
+			return m, m.view.Init()
+		case messages.ContainersApi:
 			m.view = newContainersModel(m.clientset, msg.Name, m.msgCh)
 			return m, m.view.Init()
-		case messages.NamespaceViewCronJobs:
+		case messages.CronJobsApi:
 			m.view = newCronJobsModel(m.clientset, msg.Name, m.msgCh)
 			return m, m.view.Init()
 		default:
-			panic(fmt.Errorf("unknown namespace view: %s", msg.View))
+			panic(fmt.Errorf("unknown namespace view: %s", msg.Api))
 		}
 	case messages.Container:
 		m.view = newLogsModel(m.clientset, k8s.Container(msg), m.msgCh)
 		return m, m.view.Init()
+	case messages.CronJob:
 	}
 
 	var cmd tea.Cmd

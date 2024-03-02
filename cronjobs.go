@@ -12,11 +12,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-
-type cronJobListItem k8s.Container
+type cronJobListItem k8s.CronJob
 
 func (n cronJobListItem) FilterValue() string {
-	return fmt.Sprintf("%s/%s/%s", n.Namespace, n.Pod, n.Name)
+	return fmt.Sprintf("%s/%s", n.Namespace, n.Name)
 }
 
 type cronJobsModel struct {
@@ -46,7 +45,7 @@ func newCronJobsModel(
 func (m cronJobsModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.model.StartSpinner(),
-		commands.GetContainers(m.clientset, m.namespace),
+		commands.GetCronJobs(m.clientset, m.namespace),
 	)
 }
 
@@ -55,9 +54,9 @@ func (m cronJobsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "enter":
-			m.msgCh <- messages.Container(m.Selected())
+			m.msgCh <- messages.CronJob(m.Selected())
 		}
-	case messages.Containers:
+	case messages.CronJobs:
 		items := []list.Item{}
 
 		for _, c := range msg {

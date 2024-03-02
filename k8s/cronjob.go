@@ -18,7 +18,7 @@ func GetCronJobs(
 	clientset *kubernetes.Clientset,
 	namespace string,
 ) (
-	[]string,
+	[]CronJob,
 	error,
 ) {
 	cronJobs, err := clientset.
@@ -29,10 +29,14 @@ func GetCronJobs(
 		return nil, fmt.Errorf("list cronjobs: %w", err)
 	}
 
-	var names []string
+	jobs := []CronJob{}
+
 	for _, cronJob := range cronJobs.Items {
-		names = append(names, cronJob.Name)
+		jobs = append(jobs, CronJob{
+			Namespace: cronJob.Namespace,
+			Name:      cronJob.Name,
+		})
 	}
 
-	return names, nil
+	return jobs, nil
 }
