@@ -23,10 +23,12 @@ type namespacesModel struct {
 
 func newNamespacesModel(
 	clientset *kubernetes.Clientset,
+	size tea.WindowSizeMsg,
 	msgCh chan<- tea.Msg,
 ) namespacesModel {
 	m := models.DefaultListModel()
 	m.Title = "namespaces"
+	m.SetSize(size.Width, size.Height)
 
 	return namespacesModel{
 		clientset: clientset,
@@ -44,6 +46,8 @@ func (m namespacesModel) Init() tea.Cmd {
 
 func (m namespacesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.model.SetSize(msg.Width, msg.Height)
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "enter":
@@ -71,5 +75,5 @@ func (m namespacesModel) View() string {
 }
 
 func (m namespacesModel) Selected() string {
-	return m.model.SelectedItem().(namespaceListItem).FilterValue()
+	return m.model.SelectedItem().FilterValue()
 }

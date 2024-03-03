@@ -55,6 +55,7 @@ func check(msg string, err error) {
 type mainModel struct {
 	clientset *kubernetes.Clientset
 	msgCh     chan<- tea.Msg
+	size      tea.WindowSizeMsg
 	view      tea.Model
 }
 
@@ -62,10 +63,13 @@ func newMainModel(
 	clientset *kubernetes.Clientset,
 	msgCh chan<- tea.Msg,
 ) mainModel {
+	defaultSize := tea.WindowSizeMsg{Width: 80, Height: 24}
+
 	return mainModel{
 		clientset: clientset,
 		msgCh:     msgCh,
-		view:      newNamespacesModel(clientset, msgCh),
+		size:      defaultSize,
+		view:      newNamespacesModel(clientset, defaultSize, msgCh),
 	}
 }
 
@@ -75,25 +79,27 @@ func (m mainModel) Init() tea.Cmd {
 
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.size = msg
 	case messages.Namespace:
 		switch msg.Api {
 		case "":
-			m.view = newApisViewModel(m.clientset, msg.Name, m.msgCh)
+			m.view = newApisViewModel(m.clientset, m.size, msg.Name, m.msgCh)
 			return m, m.view.Init()
 		case messages.ContainersApi:
-			m.view = newContainersModel(m.clientset, msg.Name, m.msgCh)
+			m.view = newContainersModel(m.clientset, m.size, msg.Name, m.msgCh)
 			return m, m.view.Init()
 		case messages.CronJobsApi:
-			m.view = newCronJobsModel(m.clientset, msg.Name, m.msgCh)
+			m.view = newCronJobsModel(m.clientset, m.size, msg.Name, m.msgCh)
 			return m, m.view.Init()
 		default:
 			panic(fmt.Errorf("unknown namespace view: %s", msg.Api))
 		}
 	case messages.Container:
-		m.view = newLogsModel(m.clientset, k8s.Container(msg), m.msgCh)
+		m.view = newLogsModel(m.clientset, m.size, k8s.Container(msg), m.msgCh)
 		return m, m.view.Init()
 	case messages.CronJob:
-		m.view = newJobsModel(m.clientset, msg.Jobs, m.msgCh)
+		m.view = newJobsModel(m.clientset, m.size, msg.Jobs, m.msgCh)
 		return m, m.view.Init()
 	}
 
@@ -114,5 +120,8 @@ func (m mainModel) View() string {
 		v = m.view.View()
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Left, v)
+	return lipgloss.NewStyle().
+		Width(m.size.Width).
+		Height(m.size.Height).
+		Render(lipgloss.JoinVertical(lipgloss.Left, v))
 }

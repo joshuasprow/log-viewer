@@ -23,6 +23,7 @@ type apisModel struct {
 
 func newApisViewModel(
 	clientset *kubernetes.Clientset,
+	size tea.WindowSizeMsg,
 	namespace string,
 	msgCh chan<- tea.Msg,
 ) apisModel {
@@ -32,6 +33,7 @@ func newApisViewModel(
 		apisListItem(messages.ContainersApi),
 		apisListItem(messages.CronJobsApi),
 	})
+	m.SetSize(size.Width, size.Height)
 
 	return apisModel{
 		clientset: clientset,
@@ -47,12 +49,14 @@ func (m apisModel) Init() tea.Cmd {
 
 func (m apisModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.model.SetSize(msg.Width, msg.Height)
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "enter":
 			m.msgCh <- messages.Namespace{
 				Name: m.namespace,
-				Api:  messages.Api(m.Selected()),
+				Api:  messages.Api(m.Selected().FilterValue()),
 			}
 		}
 	}
@@ -67,6 +71,6 @@ func (m apisModel) View() string {
 	return m.model.View()
 }
 
-func (m apisModel) Selected() apisListItem {
-	return m.model.SelectedItem().(apisListItem)
+func (m apisModel) Selected() list.Item {
+	return m.model.SelectedItem()
 }

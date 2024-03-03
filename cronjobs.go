@@ -27,11 +27,13 @@ type cronJobsModel struct {
 
 func newCronJobsModel(
 	clientset *kubernetes.Clientset,
+	size tea.WindowSizeMsg,
 	namespace string,
 	msgCh chan<- tea.Msg,
 ) cronJobsModel {
 	m := models.DefaultListModel()
 	m.SetFilteringEnabled(true)
+	m.SetSize(size.Width, size.Height)
 	m.Title = "cronJobs"
 
 	return cronJobsModel{
@@ -51,6 +53,8 @@ func (m cronJobsModel) Init() tea.Cmd {
 
 func (m cronJobsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.model.SetSize(msg.Width, msg.Height)
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "enter":

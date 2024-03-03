@@ -27,11 +27,13 @@ type containersModel struct {
 
 func newContainersModel(
 	clientset *kubernetes.Clientset,
+	size tea.WindowSizeMsg,
 	namespace string,
 	msgCh chan<- tea.Msg,
 ) containersModel {
 	m := models.DefaultListModel()
 	m.SetFilteringEnabled(true)
+	m.SetSize(size.Width, size.Height)
 	m.Title = "containers"
 
 	return containersModel{
@@ -51,6 +53,8 @@ func (m containersModel) Init() tea.Cmd {
 
 func (m containersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.model.SetSize(msg.Width, msg.Height)
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "enter":

@@ -25,11 +25,13 @@ type jobsModel struct {
 
 func newJobsModel(
 	clientset *kubernetes.Clientset,
+	size tea.WindowSizeMsg,
 	jobs []k8s.Job,
 	msgCh chan<- tea.Msg,
 ) jobsModel {
 	m := models.DefaultListModel()
 	m.SetFilteringEnabled(true)
+	m.SetSize(size.Width, size.Height)
 	m.Title = "jobs"
 
 	items := []list.Item{}
@@ -53,6 +55,8 @@ func (m jobsModel) Init() tea.Cmd {
 
 func (m jobsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.model.SetSize(msg.Width, msg.Height)
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "enter":

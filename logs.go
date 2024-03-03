@@ -28,11 +28,13 @@ type logsModel struct {
 
 func newLogsModel(
 	clientset *kubernetes.Clientset,
+	size tea.WindowSizeMsg,
 	container k8s.Container,
 	msgCh chan<- tea.Msg,
 ) logsModel {
 	m := models.DefaultListModel()
 	m.SetFilteringEnabled(true)
+	m.SetSize(size.Width, size.Height)
 	m.Title = "logs"
 
 	return logsModel{
@@ -55,6 +57,8 @@ func (m logsModel) Init() tea.Cmd {
 
 func (m logsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.model.SetSize(msg.Width, msg.Height)
 	case messages.Logs:
 		items := []list.Item{}
 
