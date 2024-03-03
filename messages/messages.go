@@ -31,4 +31,7 @@ type Containers []k8s.Container
 type CronJob k8s.CronJob
 type CronJobs []k8s.CronJob
 
+type Job k8s.Job
+type Jobs []k8s.Job
+
 type Logs []string

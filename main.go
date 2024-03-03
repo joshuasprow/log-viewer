@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 
@@ -21,37 +20,29 @@ func main() {
 	clientset, err := k8s.NewClientset(cfg.Kubeconfig)
 	check("create k8s clientset", err)
 
-	ctx := context.Background()
+	msgCh := make(chan tea.Msg)
 
-	cronJobs, err := k8s.GetCronJobs(ctx, clientset, "default")
-	check("list jobs", err)
+	m := newMainModel(clientset, msgCh)
 
-	for _, cronJob := range cronJobs {
-		fmt.Printf("%s (%d)\n", cronJob.Name, len(cronJob.Jobs))
-	}
-	// msgCh := make(chan tea.Msg)
+	prg := tea.NewProgram(m, tea.WithAltScreen())
 
-	// m := newMainModel(clientset, msgCh)
+	go func() {
+		for {
+			msg := <-msgCh
+			switch m := msg.(type) {
+			case messages.Namespace:
+				prg.Send(m)
+			case messages.Container:
+				prg.Send(m)
+			case messages.CronJob:
+				prg.Send(m)
+			}
+		}
+	}()
 
-	// prg := tea.NewProgram(m, tea.WithAltScreen())
+	_, err = prg.Run()
 
-	// go func() {
-	// 	for {
-	// 		msg := <-msgCh
-	// 		switch m := msg.(type) {
-	// 		case messages.Namespace:
-	// 			prg.Send(m)
-	// 		case messages.Container:
-	// 			prg.Send(m)
-	// 		case messages.CronJob:
-	// 			prg.Send(m)
-	// 		}
-	// 	}
-	// }()
-
-	// _, err = prg.Run()
-
-	// check("run program", err)
+	check("run program", err)
 }
 
 func check(msg string, err error) {
@@ -102,6 +93,8 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.view = newLogsModel(m.clientset, k8s.Container(msg), m.msgCh)
 		return m, m.view.Init()
 	case messages.CronJob:
+		m.view = newJobsModel(m.clientset, msg.Jobs, m.msgCh)
+		return m, m.view.Init()
 	}
 
 	var cmd tea.Cmd
