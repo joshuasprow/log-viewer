@@ -5,11 +5,9 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/joshuasprow/log-viewer/commands"
 	"github.com/joshuasprow/log-viewer/k8s"
 	"github.com/joshuasprow/log-viewer/messages"
 	"github.com/joshuasprow/log-viewer/models"
-	"k8s.io/client-go/kubernetes"
 )
 
 type cronJobListItem k8s.CronJob
@@ -19,14 +17,12 @@ func (n cronJobListItem) FilterValue() string {
 }
 
 type cronJobsModel struct {
-	clientset *kubernetes.Clientset
 	model     *list.Model
 	namespace string
 	msgCh     chan<- tea.Msg
 }
 
 func newCronJobsModel(
-	clientset *kubernetes.Clientset,
 	size tea.WindowSizeMsg,
 	namespace string,
 	msgCh chan<- tea.Msg,
@@ -37,7 +33,6 @@ func newCronJobsModel(
 	m.Title = "cronJobs"
 
 	return cronJobsModel{
-		clientset: clientset,
 		model:     &m,
 		namespace: namespace,
 		msgCh:     msgCh,
@@ -45,10 +40,7 @@ func newCronJobsModel(
 }
 
 func (m cronJobsModel) Init() tea.Cmd {
-	return tea.Batch(
-		m.model.StartSpinner(),
-		commands.GetCronJobs(m.clientset, m.namespace),
-	)
+	return m.model.StartSpinner()
 }
 
 func (m cronJobsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

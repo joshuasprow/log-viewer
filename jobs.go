@@ -8,7 +8,6 @@ import (
 	"github.com/joshuasprow/log-viewer/k8s"
 	"github.com/joshuasprow/log-viewer/messages"
 	"github.com/joshuasprow/log-viewer/models"
-	"k8s.io/client-go/kubernetes"
 )
 
 type jobListItem k8s.Job
@@ -18,13 +17,11 @@ func (n jobListItem) FilterValue() string {
 }
 
 type jobsModel struct {
-	clientset *kubernetes.Clientset
-	model     *list.Model
-	msgCh     chan<- tea.Msg
+	model *list.Model
+	msgCh chan<- tea.Msg
 }
 
 func newJobsModel(
-	clientset *kubernetes.Clientset,
 	size tea.WindowSizeMsg,
 	jobs []k8s.Job,
 	msgCh chan<- tea.Msg,
@@ -43,15 +40,12 @@ func newJobsModel(
 	m.SetItems(items)
 
 	return jobsModel{
-		clientset: clientset,
-		model:     &m,
-		msgCh:     msgCh,
+		model: &m,
+		msgCh: msgCh,
 	}
 }
 
-func (m jobsModel) Init() tea.Cmd {
-	return nil
-}
+func (m jobsModel) Init() tea.Cmd { return nil }
 
 func (m jobsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {

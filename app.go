@@ -8,27 +8,21 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/joshuasprow/log-viewer/k8s"
 	"github.com/joshuasprow/log-viewer/messages"
-	"k8s.io/client-go/kubernetes"
 )
 
 type appModel struct {
-	clientset *kubernetes.Clientset
-	msgCh     chan<- tea.Msg
-	size      tea.WindowSizeMsg
-	view      tea.Model
+	msgCh chan<- tea.Msg
+	size  tea.WindowSizeMsg
+	view  tea.Model
 }
 
-func newAppModel(
-	clientset *kubernetes.Clientset,
-	msgCh chan<- tea.Msg,
-) appModel {
+func newAppModel(msgCh chan<- tea.Msg) appModel {
 	defaultSize := tea.WindowSizeMsg{Width: 80, Height: 24}
 
 	return appModel{
-		clientset: clientset,
-		msgCh:     msgCh,
-		size:      defaultSize,
-		view:      newNamespacesModel(defaultSize, msgCh),
+		msgCh: msgCh,
+		size:  defaultSize,
+		view:  newNamespacesModel(defaultSize, msgCh),
 	}
 }
 
@@ -50,22 +44,22 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.view = newContainersModel(m.size, msg.Name, m.msgCh)
 			return m, m.view.Init()
 		case messages.CronJobsApi:
-			m.view = newCronJobsModel(m.clientset, m.size, msg.Name, m.msgCh)
+			m.view = newCronJobsModel(m.size, msg.Name, m.msgCh)
 			return m, m.view.Init()
 		default:
 			panic(fmt.Errorf("unknown namespace view: %s", msg.Api))
 		}
 	case messages.Container:
-		m.view = newLogsModel(m.clientset, m.size, k8s.Container(msg), m.msgCh)
+		m.view = newLogsModel(m.size, k8s.Container(msg), m.msgCh)
 		return m, m.view.Init()
 	case messages.CronJob:
-		m.view = newJobsModel(m.clientset, m.size, msg.Jobs, m.msgCh)
+		m.view = newJobsModel(m.size, msg.Jobs, m.msgCh)
 		return m, m.view.Init()
 	case messages.Job:
-		m.view = newJobContainersModel(m.clientset, m.size, k8s.Job(msg), m.msgCh)
+		m.view = newJobContainersModel(m.size, k8s.Job(msg), m.msgCh)
 		return m, m.view.Init()
 	case messages.JobContainer:
-		m.view = newLogsModel(m.clientset, m.size, k8s.Container(msg), m.msgCh)
+		m.view = newLogsModel(m.size, k8s.Container(msg), m.msgCh)
 		return m, m.view.Init()
 	}
 

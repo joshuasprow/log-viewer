@@ -5,11 +5,9 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/joshuasprow/log-viewer/commands"
 	"github.com/joshuasprow/log-viewer/k8s"
 	"github.com/joshuasprow/log-viewer/messages"
 	"github.com/joshuasprow/log-viewer/models"
-	"k8s.io/client-go/kubernetes"
 )
 
 type jobContainerListItem k8s.Container
@@ -19,14 +17,12 @@ func (n jobContainerListItem) FilterValue() string {
 }
 
 type jobContainersModel struct {
-	clientset *kubernetes.Clientset
-	model     *list.Model
-	job       k8s.Job
-	msgCh     chan<- tea.Msg
+	model *list.Model
+	job   k8s.Job
+	msgCh chan<- tea.Msg
 }
 
 func newJobContainersModel(
-	clientset *kubernetes.Clientset,
 	size tea.WindowSizeMsg,
 	job k8s.Job,
 	msgCh chan<- tea.Msg,
@@ -37,18 +33,14 @@ func newJobContainersModel(
 	m.Title = "jobContainers"
 
 	return jobContainersModel{
-		clientset: clientset,
-		model:     &m,
-		job:       job,
-		msgCh:     msgCh,
+		model: &m,
+		job:   job,
+		msgCh: msgCh,
 	}
 }
 
 func (m jobContainersModel) Init() tea.Cmd {
-	return tea.Batch(
-		m.model.StartSpinner(),
-		commands.GetJobContainers(m.clientset, m.job.Namespace, m.job.Name),
-	)
+	return m.model.StartSpinner()
 }
 
 func (m jobContainersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
