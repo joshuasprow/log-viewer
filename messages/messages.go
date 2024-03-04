@@ -11,12 +11,7 @@ func (e Error) Error() string {
 	return e.Err.Error()
 }
 
-type Api string
-
-const (
-	ContainersApi Api = "containers"
-	CronJobsApi   Api = "cronJobs"
-)
+type Init struct{}
 
 type Namespace struct {
 	Name string
@@ -24,6 +19,13 @@ type Namespace struct {
 }
 
 type Namespaces []string
+
+type Api string
+
+const (
+	ContainersApi Api = "containers"
+	CronJobsApi   Api = "cronJobs"
+)
 
 type Container k8s.Container
 type Containers []k8s.Container

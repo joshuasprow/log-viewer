@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -18,15 +19,23 @@ func main() {
 	check("create k8s clientset", err)
 
 	msgCh := make(chan tea.Msg)
+	ctx := context.Background()
 
-	m := newAppModel(clientset, msgCh)
-
-	prg := tea.NewProgram(m, tea.WithAltScreen())
+	prg := tea.NewProgram(
+		newAppModel(clientset, msgCh),
+		tea.WithAltScreen(),
+		tea.WithContext(ctx),
+	)
 
 	go func() {
 		for {
 			msg := <-msgCh
 			switch m := msg.(type) {
+			case messages.Init:
+				namespaces, err := k8s.GetNamespaces(ctx, clientset)
+				check("get namespaces", err)
+
+				prg.Send(messages.Namespaces(namespaces))
 			case messages.Namespace,
 				messages.Container,
 				messages.CronJob,

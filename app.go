@@ -28,7 +28,7 @@ func newAppModel(
 		clientset: clientset,
 		msgCh:     msgCh,
 		size:      defaultSize,
-		view:      newNamespacesModel(clientset, defaultSize, msgCh),
+		view:      newNamespacesModel(defaultSize, msgCh),
 	}
 }
 

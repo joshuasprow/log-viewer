@@ -3,10 +3,8 @@ package main
 import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/joshuasprow/log-viewer/commands"
 	"github.com/joshuasprow/log-viewer/messages"
 	"github.com/joshuasprow/log-viewer/models"
-	"k8s.io/client-go/kubernetes"
 )
 
 type namespaceListItem string
@@ -16,13 +14,11 @@ func (n namespaceListItem) FilterValue() string {
 }
 
 type namespacesModel struct {
-	clientset *kubernetes.Clientset
-	model     *list.Model
-	msgCh     chan<- tea.Msg
+	model *list.Model
+	msgCh chan<- tea.Msg
 }
 
 func newNamespacesModel(
-	clientset *kubernetes.Clientset,
 	size tea.WindowSizeMsg,
 	msgCh chan<- tea.Msg,
 ) namespacesModel {
@@ -31,16 +27,18 @@ func newNamespacesModel(
 	m.SetSize(size.Width, size.Height)
 
 	return namespacesModel{
-		clientset: clientset,
-		model:     &m,
-		msgCh:     msgCh,
+		model: &m,
+		msgCh: msgCh,
 	}
 }
 
 func (m namespacesModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.model.StartSpinner(),
-		commands.GetNamespaces(m.clientset),
+		func() tea.Msg {
+			m.msgCh <- messages.Init{}
+			return nil
+		},
 	)
 }
 
