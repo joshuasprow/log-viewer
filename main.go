@@ -28,20 +28,37 @@ func main() {
 	)
 
 	go func() {
-		for {
-			msg := <-msgCh
-			switch m := msg.(type) {
+		for msg := range msgCh {
+			switch msg := msg.(type) {
 			case messages.Init:
 				namespaces, err := k8s.GetNamespaces(ctx, clientset)
 				check("get namespaces", err)
 
 				prg.Send(messages.Namespaces(namespaces))
-			case messages.Namespace,
-				messages.Container,
+			case messages.Namespace:
+				switch msg.Api {
+				case "":
+					prg.Send(msg)
+				case messages.ContainersApi:
+					prg.Send(msg)
+
+					containers, err := k8s.GetContainers(ctx, clientset, msg.Name, "")
+					check("get containers", err)
+
+					prg.Send(messages.Containers(containers))
+				case messages.CronJobsApi:
+					prg.Send(msg)
+
+					cronJobs, err := k8s.GetCronJobs(ctx, clientset, msg.Name)
+					check("get cron jobs", err)
+
+					prg.Send(messages.CronJobs(cronJobs))
+				}
+			case messages.Container,
 				messages.CronJob,
 				messages.Job,
 				messages.JobContainer:
-				prg.Send(m)
+				prg.Send(msg)
 			}
 		}
 	}()

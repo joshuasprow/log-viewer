@@ -5,7 +5,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joshuasprow/log-viewer/messages"
 	"github.com/joshuasprow/log-viewer/models"
-	"k8s.io/client-go/kubernetes"
 )
 
 type apisListItem string
@@ -15,14 +14,12 @@ func (n apisListItem) FilterValue() string {
 }
 
 type apisModel struct {
-	clientset *kubernetes.Clientset
 	model     *list.Model
 	namespace string
 	msgCh     chan<- tea.Msg
 }
 
 func newApisViewModel(
-	clientset *kubernetes.Clientset,
 	size tea.WindowSizeMsg,
 	namespace string,
 	msgCh chan<- tea.Msg,
@@ -36,7 +33,6 @@ func newApisViewModel(
 	m.SetSize(size.Width, size.Height)
 
 	return apisModel{
-		clientset: clientset,
 		model:     &m,
 		namespace: namespace,
 		msgCh:     msgCh,

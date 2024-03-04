@@ -5,11 +5,9 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/joshuasprow/log-viewer/commands"
 	"github.com/joshuasprow/log-viewer/k8s"
 	"github.com/joshuasprow/log-viewer/messages"
 	"github.com/joshuasprow/log-viewer/models"
-	"k8s.io/client-go/kubernetes"
 )
 
 type containerListItem k8s.Container
@@ -19,14 +17,12 @@ func (n containerListItem) FilterValue() string {
 }
 
 type containersModel struct {
-	clientset *kubernetes.Clientset
 	model     *list.Model
 	namespace string
 	msgCh     chan<- tea.Msg
 }
 
 func newContainersModel(
-	clientset *kubernetes.Clientset,
 	size tea.WindowSizeMsg,
 	namespace string,
 	msgCh chan<- tea.Msg,
@@ -37,7 +33,6 @@ func newContainersModel(
 	m.Title = "containers"
 
 	return containersModel{
-		clientset: clientset,
 		model:     &m,
 		namespace: namespace,
 		msgCh:     msgCh,
@@ -45,10 +40,7 @@ func newContainersModel(
 }
 
 func (m containersModel) Init() tea.Cmd {
-	return tea.Batch(
-		m.model.StartSpinner(),
-		commands.GetContainers(m.clientset, m.namespace),
-	)
+	return m.model.StartSpinner()
 }
 
 func (m containersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

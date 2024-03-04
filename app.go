@@ -44,10 +44,10 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case messages.Namespace:
 		switch msg.Api {
 		case "":
-			m.view = newApisViewModel(m.clientset, m.size, msg.Name, m.msgCh)
+			m.view = newApisViewModel(m.size, msg.Name, m.msgCh)
 			return m, m.view.Init()
 		case messages.ContainersApi:
-			m.view = newContainersModel(m.clientset, m.size, msg.Name, m.msgCh)
+			m.view = newContainersModel(m.size, msg.Name, m.msgCh)
 			return m, m.view.Init()
 		case messages.CronJobsApi:
 			m.view = newCronJobsModel(m.clientset, m.size, msg.Name, m.msgCh)
