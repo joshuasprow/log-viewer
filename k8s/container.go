@@ -17,11 +17,12 @@ func GetContainers(
 	ctx context.Context,
 	clientset *kubernetes.Clientset,
 	namespace string,
+	labelSelector string,
 ) (
 	[]Container,
 	error,
 ) {
-	pods, err := GetPods(ctx, clientset, namespace)
+	pods, err := GetPods(ctx, clientset, namespace, labelSelector)
 	if err != nil {
 		return nil, fmt.Errorf("load model data: %w", err)
 	}

@@ -12,6 +12,7 @@ func GetPods(
 	ctx context.Context,
 	clientset *kubernetes.Clientset,
 	namespace string,
+	labelSelector string,
 ) (
 	[]v1.Pod,
 	error,
@@ -19,7 +20,7 @@ func GetPods(
 	list, err := clientset.
 		CoreV1().
 		Pods(namespace).
-		List(ctx, metav1.ListOptions{})
+		List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		return nil, err
 	}

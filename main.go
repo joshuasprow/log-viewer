@@ -30,18 +30,17 @@ func main() {
 		for {
 			msg := <-msgCh
 			switch m := msg.(type) {
-			case messages.Namespace:
-				prg.Send(m)
-			case messages.Container:
-				prg.Send(m)
-			case messages.CronJob:
+			case messages.Namespace,
+				messages.Container,
+				messages.CronJob,
+				messages.Job,
+				messages.JobContainer:
 				prg.Send(m)
 			}
 		}
 	}()
 
 	_, err = prg.Run()
-
 	check("run program", err)
 }
 
@@ -80,7 +79,8 @@ func (m mainModel) Init() tea.Cmd {
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.size = msg
+		m.size.Width = msg.Width
+		m.size.Height = msg.Height - 1 // todo: fixes list title disappearing
 	case messages.Namespace:
 		switch msg.Api {
 		case "":
@@ -101,6 +101,12 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case messages.CronJob:
 		m.view = newJobsModel(m.clientset, m.size, msg.Jobs, m.msgCh)
 		return m, m.view.Init()
+	case messages.Job:
+		m.view = newJobContainersModel(m.clientset, m.size, k8s.Job(msg), m.msgCh)
+		return m, m.view.Init()
+	case messages.JobContainer:
+		m.view = newLogsModel(m.clientset, m.size, k8s.Container(msg), m.msgCh)
+		return m, m.view.Init()
 	}
 
 	var cmd tea.Cmd
@@ -120,8 +126,5 @@ func (m mainModel) View() string {
 		v = m.view.View()
 	}
 
-	return lipgloss.NewStyle().
-		Width(m.size.Width).
-		Height(m.size.Height).
-		Render(lipgloss.JoinVertical(lipgloss.Left, v))
+	return lipgloss.JoinVertical(lipgloss.Left, v)
 }

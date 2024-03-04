@@ -29,7 +29,7 @@ func GetContainers(clientset *kubernetes.Clientset, namespace string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 
-		containers, err := k8s.GetContainers(ctx, clientset, namespace)
+		containers, err := k8s.GetContainers(ctx, clientset, namespace, "")
 		if err != nil {
 			return messages.Error{
 				Err: fmt.Errorf("get containers: %w", err),
@@ -37,6 +37,31 @@ func GetContainers(clientset *kubernetes.Clientset, namespace string) tea.Cmd {
 		}
 
 		return messages.Containers(containers)
+	}
+}
+
+func GetJobContainers(
+	clientset *kubernetes.Clientset,
+	namespace, job string,
+) tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+
+		labelSelector := fmt.Sprintf("job-name=%s", job)
+
+		containers, err := k8s.GetContainers(
+			ctx,
+			clientset,
+			namespace,
+			labelSelector,
+		)
+		if err != nil {
+			return messages.Error{
+				Err: fmt.Errorf("get containers: %w", err),
+			}
+		}
+
+		return messages.JobContainers(containers)
 	}
 }
 
