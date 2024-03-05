@@ -7,24 +7,7 @@ import (
 	"github.com/joshuasprow/log-viewer/messages"
 )
 
-type viewKey string
 
-const (
-	namespacesKey viewKey = "namespaces"
-	apisKey       viewKey = namespacesKey + ".apis"
-
-	containersKey    viewKey = apisKey + ".containers"
-	containerLogsKey viewKey = containersKey + ".logs"
-
-	cronJobsKey          viewKey = apisKey + ".cronjobs"
-	cronJobJobsKey       viewKey = cronJobsKey + ".jobs"
-	cronJobContainersKey viewKey = cronJobJobsKey + ".containers"
-	cronJobLogsKey       viewKey = cronJobContainersKey + ".logs"
-)
-
-func (k viewKey) FilterValue() string {
-	return string(k)
-}
 
 type viewData struct {
 	namespace        string
@@ -58,15 +41,3 @@ func updateViewData(data viewData, msg viewMsg) (viewData, error) {
 
 	return data, nil
 }
-
-type viewMsg struct {
-	key  viewKey
-	data any
-}
-
-type namespacesDataMsg []string
-type containersDataMsg []k8s.Container
-type containerLogsDataMsg []string
-type cronJobsDataMsg []k8s.CronJob
-type cronJobContainersDataMsg []k8s.Container
-type cronJobLogsDataMsg []string

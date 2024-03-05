@@ -1,48 +1,40 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joshuasprow/log-viewer/k8s"
 	"github.com/joshuasprow/log-viewer/models"
 )
 
-type jobContainerListItem k8s.Container
-
-func (n jobContainerListItem) FilterValue() string {
-	return fmt.Sprintf("%s/%s", n.Namespace, n.Name)
-}
-
-type jobContainersModel struct {
+type cronJobContainersModel struct {
 	model   *list.Model
 	cronJob k8s.CronJob
 	msgCh   chan<- tea.Msg
 }
 
-func newJobContainersModel(
+func newCronJobContainersModel(
 	size tea.WindowSizeMsg,
 	cronJob k8s.CronJob,
 	msgCh chan<- tea.Msg,
-) jobContainersModel {
+) cronJobContainersModel {
 	m := models.DefaultListModel()
 	m.SetFilteringEnabled(true)
 	m.SetSize(size.Width, size.Height)
 	m.Title = "jobContainers"
 
-	return jobContainersModel{
+	return cronJobContainersModel{
 		model:   &m,
 		cronJob: cronJob,
 		msgCh:   msgCh,
 	}
 }
 
-func (m jobContainersModel) Init() tea.Cmd {
+func (m cronJobContainersModel) Init() tea.Cmd {
 	return m.model.StartSpinner()
 }
 
-func (m jobContainersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m cronJobContainersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.model.SetSize(msg.Width, msg.Height)
@@ -63,7 +55,7 @@ func (m jobContainersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		items := []list.Item{}
 
 		for _, c := range msg {
-			items = append(items, jobContainerListItem(c))
+			items = append(items, containerListItem(c))
 		}
 
 		m.model.SetItems(items)
@@ -75,10 +67,10 @@ func (m jobContainersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m jobContainersModel) View() string {
+func (m cronJobContainersModel) View() string {
 	return m.model.View()
 }
 
-func (m jobContainersModel) Selected() jobContainerListItem {
-	return m.model.SelectedItem().(jobContainerListItem)
+func (m cronJobContainersModel) Selected() containerListItem {
+	return m.model.SelectedItem().(containerListItem)
 }

@@ -15,18 +15,18 @@ func (n jobListItem) FilterValue() string {
 	return fmt.Sprintf("%s/%s", n.Namespace, n.Name)
 }
 
-type jobsModel struct {
+type cronJobJobsModel struct {
 	model     *list.Model
 	namespace string
 	msgCh     chan<- tea.Msg
 }
 
-func newJobsModel(
+func newCronJobJobsModel(
 	size tea.WindowSizeMsg,
 	namespace string,
 	jobs []k8s.Job,
 	msgCh chan<- tea.Msg,
-) jobsModel {
+) cronJobJobsModel {
 	m := models.DefaultListModel()
 	m.SetFilteringEnabled(true)
 	m.SetSize(size.Width, size.Height)
@@ -40,16 +40,16 @@ func newJobsModel(
 
 	m.SetItems(items)
 
-	return jobsModel{
+	return cronJobJobsModel{
 		model:     &m,
 		namespace: namespace,
 		msgCh:     msgCh,
 	}
 }
 
-func (m jobsModel) Init() tea.Cmd { return nil }
+func (m cronJobJobsModel) Init() tea.Cmd { return nil }
 
-func (m jobsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m cronJobJobsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.model.SetSize(msg.Width, msg.Height)
@@ -73,10 +73,10 @@ func (m jobsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m jobsModel) View() string {
+func (m cronJobJobsModel) View() string {
 	return m.model.View()
 }
 
-func (m jobsModel) Selected() jobListItem {
+func (m cronJobJobsModel) Selected() jobListItem {
 	return m.model.SelectedItem().(jobListItem)
 }

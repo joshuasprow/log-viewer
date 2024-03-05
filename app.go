@@ -46,14 +46,14 @@ func (m appModel) getViewByKey(key viewKey) (tea.Model, error) {
 	case cronJobsKey:
 		return newCronJobsModel(m.size, m.data.namespace, m.msgCh), nil
 	case cronJobJobsKey:
-		return newJobsModel(
+		return newCronJobJobsModel(
 			m.size,
 			m.data.cronJob.Namespace,
 			m.data.cronJob.Jobs,
 			m.msgCh,
 		), nil
 	case cronJobContainersKey:
-		return newJobContainersModel(m.size, m.data.cronJob, m.msgCh), nil
+		return newCronJobContainersModel(m.size, m.data.cronJob, m.msgCh), nil
 	case cronJobLogsKey:
 		return newCronJobLogsModel(
 			m.size,
