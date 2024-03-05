@@ -78,13 +78,7 @@ func handleMessages(
 				logs, err := k8s.GetPodLogs(ctx, clientset, container.Namespace, container.Pod, container.Name)
 				check("get pod logs", err)
 
-				prg.Send(logsDataMsg{
-					prevMsg: viewMsg{
-						key:  containersKey,
-						data: container.Namespace,
-					},
-					data: logs,
-				})
+				prg.Send(containerLogsDataMsg(logs))
 			case cronJobsKey:
 				namespace := msg.data.(string)
 
@@ -108,13 +102,7 @@ func handleMessages(
 				logs, err := k8s.GetPodLogs(ctx, clientset, container.Namespace, container.Pod, container.Name)
 				check("get pod logs", err)
 
-				prg.Send(logsDataMsg{
-					prevMsg: viewMsg{
-						key:  cronJobContainersKey,
-						data: container,
-					},
-					data: logs,
-				})
+				prg.Send(cronJobLogsDataMsg(logs))
 			}
 		default:
 			check("unknown message", fmt.Errorf("type %T", msg))

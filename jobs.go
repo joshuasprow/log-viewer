@@ -16,12 +16,14 @@ func (n jobListItem) FilterValue() string {
 }
 
 type jobsModel struct {
-	model *list.Model
-	msgCh chan<- tea.Msg
+	model     *list.Model
+	namespace string
+	msgCh     chan<- tea.Msg
 }
 
 func newJobsModel(
 	size tea.WindowSizeMsg,
+	namespace string,
 	jobs []k8s.Job,
 	msgCh chan<- tea.Msg,
 ) jobsModel {
@@ -39,8 +41,9 @@ func newJobsModel(
 	m.SetItems(items)
 
 	return jobsModel{
-		model: &m,
-		msgCh: msgCh,
+		model:     &m,
+		namespace: namespace,
+		msgCh:     msgCh,
 	}
 }
 
@@ -52,6 +55,11 @@ func (m jobsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.model.SetSize(msg.Width, msg.Height)
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
+		case "esc":
+			m.msgCh <- viewMsg{
+				key:  cronJobsKey,
+				data: m.namespace,
+			}
 		case "enter":
 			m.msgCh <- viewMsg{
 				key:  cronJobContainersKey,

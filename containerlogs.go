@@ -13,51 +13,52 @@ func (i logListItem) FilterValue() string {
 	return string(i)
 }
 
-type logsModel struct {
+type containerLogsModel struct {
 	model     *list.Model
 	msgCh     chan<- tea.Msg
-	prevMsg   viewMsg
 	container k8s.Container
 }
 
-func newLogsModel(
+func newContainerLogsModel(
 	size tea.WindowSizeMsg,
 	container k8s.Container,
 	msgCh chan<- tea.Msg,
-) logsModel {
+) containerLogsModel {
 	m := models.DefaultListModel()
 	m.SetFilteringEnabled(true)
 	m.SetSize(size.Width, size.Height)
-	m.Title = "logs"
+	m.Title = "container logs"
 
-	return logsModel{
+	return containerLogsModel{
 		model:     &m,
 		msgCh:     msgCh,
 		container: container,
 	}
 }
 
-func (m logsModel) Init() tea.Cmd {
+func (m containerLogsModel) Init() tea.Cmd {
 	return m.model.StartSpinner()
 }
 
-func (m logsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m containerLogsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.model.SetSize(msg.Width, msg.Height)
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "esc":
-			m.msgCh <- m.prevMsg
+			m.msgCh <- viewMsg{
+				key:  containersKey,
+				data: m.container.Namespace,
+			}
 		}
-	case logsDataMsg:
+	case containerLogsDataMsg:
 		items := []list.Item{}
 
-		for _, i := range msg.data {
+		for _, i := range msg {
 			items = append(items, logListItem(i))
 		}
 
-		m.prevMsg = msg.prevMsg
 		m.model.SetItems(items)
 		m.model.StopSpinner()
 	}
@@ -68,10 +69,10 @@ func (m logsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m logsModel) View() string {
+func (m containerLogsModel) View() string {
 	return m.model.View()
 }
 
-func (m logsModel) Selected() list.Item {
+func (m containerLogsModel) Selected() list.Item {
 	return m.model.SelectedItem()
 }

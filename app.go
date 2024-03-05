@@ -42,15 +42,24 @@ func (m appModel) getViewByKey(key viewKey) (tea.Model, error) {
 	case containersKey:
 		return newContainersModel(m.size, m.data.namespace, m.msgCh), nil
 	case containerLogsKey:
-		return newLogsModel(m.size, m.data.container, m.msgCh), nil
+		return newContainerLogsModel(m.size, m.data.container, m.msgCh), nil
 	case cronJobsKey:
 		return newCronJobsModel(m.size, m.data.namespace, m.msgCh), nil
 	case cronJobJobsKey:
-		return newJobsModel(m.size, m.data.cronJob.Jobs, m.msgCh), nil
+		return newJobsModel(
+			m.size,
+			m.data.cronJob.Namespace,
+			m.data.cronJob.Jobs,
+			m.msgCh,
+		), nil
 	case cronJobContainersKey:
-		return newJobContainersModel(m.size, m.data.cronJobJob, m.msgCh), nil
+		return newJobContainersModel(m.size, m.data.cronJob, m.msgCh), nil
 	case cronJobLogsKey:
-		return newLogsModel(m.size, m.data.cronJobContainer, m.msgCh), nil
+		return newCronJobLogsModel(
+			m.size,
+			m.data.cronJobJob,
+			m.msgCh,
+		), nil
 	default:
 		return nil, fmt.Errorf("unknown view key: %s", key)
 	}

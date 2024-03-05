@@ -66,9 +66,7 @@ type viewMsg struct {
 
 type namespacesDataMsg []string
 type containersDataMsg []k8s.Container
+type containerLogsDataMsg []string
 type cronJobsDataMsg []k8s.CronJob
 type cronJobContainersDataMsg []k8s.Container
-type logsDataMsg struct {
-	prevMsg viewMsg
-	data    []string
-}
+type cronJobLogsDataMsg []string
