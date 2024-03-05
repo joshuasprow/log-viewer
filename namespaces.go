@@ -49,7 +49,10 @@ func (m namespacesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "enter":
-			m.msgCh <- messages.Namespace{Name: m.Selected()}
+			m.msgCh <- viewMsg{
+				key:  apisKey,
+				data: m.Selected(),
+			}
 		}
 	case messages.Namespaces:
 		items := []list.Item{}

@@ -15,17 +15,21 @@ type Init struct{}
 
 type Namespace struct {
 	Name string
-	Api  Api
+	Api  ApiKey
 }
 
 type Namespaces []string
 
-type Api string
+type ApiKey string
 
 const (
-	ContainersApi Api = "containers"
-	CronJobsApi   Api = "cronJobs"
+	ContainersApi ApiKey = "containers"
+	CronJobsApi   ApiKey = "cronJobs"
 )
+
+func (k ApiKey) FilterValue() string {
+	return string(k)
+}
 
 type Container k8s.Container
 type Containers []k8s.Container

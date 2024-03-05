@@ -50,7 +50,10 @@ func (m containersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "enter":
-			m.msgCh <- messages.Container(m.Selected())
+			m.msgCh <- viewMsg{
+				key:  containerLogsKey,
+				data: k8s.Container(m.Selected()),
+			}
 		}
 	case messages.Containers:
 		items := []list.Item{}

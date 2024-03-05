@@ -3,15 +3,8 @@ package main
 import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/joshuasprow/log-viewer/messages"
 	"github.com/joshuasprow/log-viewer/models"
 )
-
-type apisListItem string
-
-func (n apisListItem) FilterValue() string {
-	return string(n)
-}
 
 type apisModel struct {
 	model     *list.Model
@@ -25,12 +18,12 @@ func newApisViewModel(
 	msgCh chan<- tea.Msg,
 ) apisModel {
 	m := models.DefaultListModel()
-	m.Title = "apis"
 	m.SetItems([]list.Item{
-		apisListItem(messages.ContainersApi),
-		apisListItem(messages.CronJobsApi),
+		containersKey,
+		cronJobsKey,
 	})
 	m.SetSize(size.Width, size.Height)
+	m.Title = "apis"
 
 	return apisModel{
 		model:     &m,
@@ -50,9 +43,9 @@ func (m apisModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "enter":
-			m.msgCh <- messages.Namespace{
-				Name: m.namespace,
-				Api:  messages.Api(m.Selected().FilterValue()),
+			m.msgCh <- viewMsg{
+				key:  viewKey(m.Selected()),
+				data: m.namespace,
 			}
 		}
 	}
@@ -67,6 +60,6 @@ func (m apisModel) View() string {
 	return m.model.View()
 }
 
-func (m apisModel) Selected() list.Item {
-	return m.model.SelectedItem()
+func (m apisModel) Selected() viewKey {
+	return m.model.SelectedItem().(viewKey)
 }
