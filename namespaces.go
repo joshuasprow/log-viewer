@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/joshuasprow/log-viewer/messages"
 	"github.com/joshuasprow/log-viewer/models"
 )
 
@@ -33,13 +32,7 @@ func newNamespacesModel(
 }
 
 func (m namespacesModel) Init() tea.Cmd {
-	return tea.Batch(
-		m.model.StartSpinner(),
-		func() tea.Msg {
-			m.msgCh <- messages.Init{}
-			return nil
-		},
-	)
+	return m.model.StartSpinner()
 }
 
 func (m namespacesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -54,7 +47,7 @@ func (m namespacesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				data: m.Selected(),
 			}
 		}
-	case messages.Namespaces:
+	case namespacesDataMsg:
 		items := []list.Item{}
 
 		for _, namespace := range msg {

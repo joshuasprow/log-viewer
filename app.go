@@ -23,13 +23,14 @@ func newAppModel(msgCh chan<- tea.Msg) appModel {
 	return appModel{
 		msgCh: msgCh,
 		size:  size,
-		key:   namespacesKey,
-		view:  newNamespacesModel(size, msgCh),
 	}
 }
 
 func (m appModel) Init() tea.Cmd {
-	return m.view.Init()
+	return func() tea.Msg {
+		m.msgCh <- viewMsg{key: namespacesKey}
+		return nil
+	}
 }
 
 func (m appModel) getViewByKey(key viewKey) (tea.Model, error) {
@@ -46,6 +47,8 @@ func (m appModel) getViewByKey(key viewKey) (tea.Model, error) {
 		return newCronJobsModel(m.size, m.data.namespace, m.msgCh), nil
 	case cronJobJobsKey:
 		return newJobsModel(m.size, m.data.cronJob.Jobs, m.msgCh), nil
+	case cronJobContainersKey:
+		return newJobContainersModel(m.size, m.data.cronJobJob, m.msgCh), nil
 	case cronJobLogsKey:
 		return newLogsModel(m.size, m.data.cronJobContainer, m.msgCh), nil
 	default:
@@ -63,12 +66,12 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.key = msg.key
 
-		m.view, err = m.getViewByKey(m.key)
+		m.data, err = updateViewData(m.data, msg)
 		if err != nil {
 			panic(err)
 		}
 
-		m.data, err = updateViewData(m.data, msg)
+		m.view, err = m.getViewByKey(m.key)
 		if err != nil {
 			panic(err)
 		}

@@ -6,7 +6,6 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joshuasprow/log-viewer/k8s"
-	"github.com/joshuasprow/log-viewer/messages"
 	"github.com/joshuasprow/log-viewer/models"
 )
 
@@ -40,7 +39,7 @@ func newContainersModel(
 }
 
 func (m containersModel) Init() tea.Cmd {
-	return m.model.StartSpinner()
+	return tea.Batch(m.model.StartSpinner())
 }
 
 func (m containersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -55,7 +54,7 @@ func (m containersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				data: k8s.Container(m.Selected()),
 			}
 		}
-	case messages.Containers:
+	case containersDataMsg:
 		items := []list.Item{}
 
 		for _, c := range msg {

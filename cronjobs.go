@@ -6,7 +6,6 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joshuasprow/log-viewer/k8s"
-	"github.com/joshuasprow/log-viewer/messages"
 	"github.com/joshuasprow/log-viewer/models"
 )
 
@@ -50,9 +49,12 @@ func (m cronJobsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "enter":
-			m.msgCh <- messages.CronJob(m.Selected())
+			m.msgCh <- viewMsg{
+				key:  cronJobJobsKey,
+				data: k8s.CronJob(m.Selected()),
+			}
 		}
-	case messages.CronJobs:
+	case cronJobsDataMsg:
 		items := []list.Item{}
 
 		for _, c := range msg {

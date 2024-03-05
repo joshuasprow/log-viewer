@@ -4,7 +4,6 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joshuasprow/log-viewer/k8s"
-	"github.com/joshuasprow/log-viewer/messages"
 	"github.com/joshuasprow/log-viewer/models"
 )
 
@@ -15,12 +14,9 @@ func (i logListItem) FilterValue() string {
 }
 
 type logsModel struct {
-	model *list.Model
-	msgCh chan<- tea.Msg
-
-	namespace string
-	pod       string
-	container string
+	model     *list.Model
+	msgCh     chan<- tea.Msg
+	container k8s.Container
 }
 
 func newLogsModel(
@@ -34,12 +30,9 @@ func newLogsModel(
 	m.Title = "logs"
 
 	return logsModel{
-		model: &m,
-		msgCh: msgCh,
-
-		namespace: container.Namespace,
-		pod:       container.Pod,
-		container: container.Name,
+		model:     &m,
+		msgCh:     msgCh,
+		container: container,
 	}
 }
 
@@ -51,7 +44,7 @@ func (m logsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.model.SetSize(msg.Width, msg.Height)
-	case messages.Logs:
+	case logsDataMsg:
 		items := []list.Item{}
 
 		for _, i := range msg {

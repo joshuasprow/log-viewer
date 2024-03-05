@@ -6,7 +6,6 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joshuasprow/log-viewer/k8s"
-	"github.com/joshuasprow/log-viewer/messages"
 	"github.com/joshuasprow/log-viewer/models"
 )
 
@@ -54,17 +53,11 @@ func (m jobsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "enter":
-			m.msgCh <- messages.Job(m.Selected())
+			m.msgCh <- viewMsg{
+				key:  cronJobContainersKey,
+				data: k8s.Job(m.Selected()),
+			}
 		}
-	case messages.Jobs:
-		items := []list.Item{}
-
-		for _, c := range msg {
-			items = append(items, jobListItem(c))
-		}
-
-		m.model.SetItems(items)
-		m.model.StopSpinner()
 	}
 
 	lm, cmd := m.model.Update(msg)
