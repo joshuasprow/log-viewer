@@ -78,7 +78,13 @@ func handleMessages(
 				logs, err := k8s.GetPodLogs(ctx, clientset, container.Namespace, container.Pod, container.Name)
 				check("get pod logs", err)
 
-				prg.Send(logsDataMsg(logs))
+				prg.Send(logsDataMsg{
+					prevMsg: viewMsg{
+						key:  containersKey,
+						data: container.Namespace,
+					},
+					data: logs,
+				})
 			case cronJobsKey:
 				namespace := msg.data.(string)
 
@@ -102,40 +108,14 @@ func handleMessages(
 				logs, err := k8s.GetPodLogs(ctx, clientset, container.Namespace, container.Pod, container.Name)
 				check("get pod logs", err)
 
-				prg.Send(logsDataMsg(logs))
+				prg.Send(logsDataMsg{
+					prevMsg: viewMsg{
+						key:  cronJobContainersKey,
+						data: container,
+					},
+					data: logs,
+				})
 			}
-		// case messages.Namespace:
-		// 	switch msg.Api {
-		// 	case "":
-
-		// 	case messages.ContainersApi:
-		// 		containers, err := k8s.GetContainers(ctx, clientset, msg.Name, "")
-		// 		check("get containers", err)
-
-		// 		prg.Send(messages.Containers(containers))
-		// 	case messages.CronJobsApi:
-		// 		cronJobs, err := k8s.GetCronJobs(ctx, clientset, msg.Name)
-		// 		check("get cron jobs", err)
-
-		// 		prg.Send(messages.CronJobs(cronJobs))
-		// 	}
-		// case messages.Container:
-		// 	logs, err := k8s.GetPodLogs(ctx, clientset, msg.Namespace, msg.Pod, msg.Name)
-		// 	check("get pod logs", err)
-
-		// 	prg.Send(messages.Logs(logs))
-		// case messages.JobContainer:
-		// 	logs, err := k8s.GetPodLogs(ctx, clientset, msg.Namespace, msg.Pod, msg.Name)
-		// 	check("get pod logs", err)
-
-		// 	prg.Send(messages.Logs(logs))
-		// case messages.Job:
-		// 	labelSelector := fmt.Sprintf("job-name=%s", msg.Name)
-
-		// 	containers, err := k8s.GetContainers(ctx, clientset, msg.Namespace, labelSelector)
-		// 	check("get containers", err)
-
-		// 	prg.Send(messages.JobContainers(containers))
 		default:
 			check("unknown message", fmt.Errorf("type %T", msg))
 		}

@@ -48,6 +48,10 @@ func (m containersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.model.SetSize(msg.Width, msg.Height)
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
+		case "esc":
+			m.msgCh <- viewMsg{
+				key: apisKey,
+			}
 		case "enter":
 			m.msgCh <- viewMsg{
 				key:  containerLogsKey,

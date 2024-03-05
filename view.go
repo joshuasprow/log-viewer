@@ -68,4 +68,7 @@ type namespacesDataMsg []string
 type containersDataMsg []k8s.Container
 type cronJobsDataMsg []k8s.CronJob
 type cronJobContainersDataMsg []k8s.Container
-type logsDataMsg []string
+type logsDataMsg struct {
+	prevMsg viewMsg
+	data    []string
+}

@@ -16,6 +16,7 @@ func (i logListItem) FilterValue() string {
 type logsModel struct {
 	model     *list.Model
 	msgCh     chan<- tea.Msg
+	prevMsg   viewMsg
 	container k8s.Container
 }
 
@@ -44,13 +45,19 @@ func (m logsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.model.SetSize(msg.Width, msg.Height)
+	case tea.KeyMsg:
+		switch keypress := msg.String(); keypress {
+		case "esc":
+			m.msgCh <- m.prevMsg
+		}
 	case logsDataMsg:
 		items := []list.Item{}
 
-		for _, i := range msg {
+		for _, i := range msg.data {
 			items = append(items, logListItem(i))
 		}
 
+		m.prevMsg = msg.prevMsg
 		m.model.SetItems(items)
 		m.model.StopSpinner()
 	}
