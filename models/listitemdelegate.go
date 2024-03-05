@@ -7,7 +7,6 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/joshuasprow/log-viewer/styles"
 )
 
 type listItemDelegate struct{}
@@ -28,10 +27,10 @@ func (d listItemDelegate) Render(
 	index int,
 	item list.Item,
 ) {
-	fn := styles.ListItem.Normal.Render
+	fn := listItemStyles.Normal.Render
 	if index == m.Index() {
 		fn = func(s ...string) string {
-			return styles.ListItem.Selected.Render("> " + strings.Join(s, " "))
+			return listItemStyles.Selected.Render("> " + strings.Join(s, " "))
 		}
 	}
 
