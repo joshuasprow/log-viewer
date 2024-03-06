@@ -74,12 +74,12 @@ func handleMessages(
 			logs, err := k8s.GetPodLogs(ctx, clientset, msg.container.Namespace, msg.container.Pod, msg.container.Name)
 			check("get pod logs", err)
 
-			prg.Send(containerLogsDataMsg(logs))
+			prg.Send(tui.WrapLogs(logs))
 		case cronJobsViewMsg:
 			cronJobs, err := k8s.GetCronJobs(ctx, clientset, msg.namespace)
 			check("get cron jobs", err)
 
-			prg.Send(cronJobsDataMsg(cronJobs))
+			prg.Send(tui.WrapCronJobs(cronJobs))
 		case cronJobJobsViewMsg:
 		case cronJobContainersViewMsg:
 			labelSelector := fmt.Sprintf("job-name=%s", msg.job.Name)

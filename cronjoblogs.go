@@ -5,6 +5,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joshuasprow/log-viewer/k8s"
 	"github.com/joshuasprow/log-viewer/models"
+	"github.com/joshuasprow/log-viewer/tui"
 )
 
 type cronJobLogsModel struct {
@@ -48,7 +49,7 @@ func (m cronJobLogsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		items := []list.Item{}
 
 		for _, i := range msg {
-			items = append(items, logListItem(i))
+			items = append(items, tui.Log(i))
 		}
 
 		m.model.SetItems(items)
