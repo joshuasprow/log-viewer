@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joshuasprow/log-viewer/k8s"
 	"github.com/joshuasprow/log-viewer/pkg"
@@ -61,13 +62,26 @@ func handleMessages(
 			namespaces, err := k8s.GetNamespaces(ctx, clientset)
 			check("get namespaces", err)
 
-			prg.Send(namespacesDataMsg(namespaces))
+			items := []list.Item{}
+
+			for _, namespace := range namespaces {
+				items = append(items, namespaceListItem(namespace))
+			}
+
+			prg.Send(items)
 		case apisViewMsg:
+			prg.Send([]list.Item{containersKey, cronJobsKey})
 		case containersViewMsg:
 			containers, err := k8s.GetContainers(ctx, clientset, msg.namespace, "")
 			check("get containers", err)
 
-			prg.Send(containersDataMsg(containers))
+			items := []list.Item{}
+
+			for _, container := range containers {
+				items = append(items, containerListItem(container))
+			}
+
+			prg.Send(items)
 		case containerLogsViewMsg:
 			logs, err := k8s.GetPodLogs(ctx, clientset, msg.container.Namespace, msg.container.Pod, msg.container.Name)
 			check("get pod logs", err)

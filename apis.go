@@ -32,6 +32,28 @@ func newApisViewModel(
 	}
 }
 
+func newApisModelNext(
+	size tea.WindowSizeMsg,
+	namespace string,
+	msgCh chan<- tea.Msg,
+) tea.Model {
+	options := listModelOptions[viewKey]{
+		onEnter: func(selected viewKey, msgCh chan<- tea.Msg) {
+			switch selected {
+			case containersKey:
+				msgCh <- containersViewMsg{namespace: namespace}
+			case cronJobsKey:
+				msgCh <- cronJobsViewMsg{namespace: namespace}
+			}
+		},
+		onEsc: func(msgCh chan<- tea.Msg) {
+			msgCh <- namespacesViewMsg{}
+		},
+	}
+
+	return newListModel(size, options, msgCh)
+}
+
 func (m apisModel) Init() tea.Cmd {
 	return nil
 }

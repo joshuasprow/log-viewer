@@ -38,6 +38,27 @@ func newContainersModel(
 	}
 }
 
+func newContainersModelNext(
+	size tea.WindowSizeMsg,
+	namespace string,
+	msgCh chan<- tea.Msg,
+) tea.Model {
+	options := listModelOptions[containerListItem]{
+		onEnter: func(selected containerListItem, msgCh chan<- tea.Msg) {
+			msgCh <- containerLogsViewMsg{
+				container: k8s.Container(selected),
+			}
+		},
+		onEsc: func(msgCh chan<- tea.Msg) {
+			msgCh <- apisViewMsg{
+				namespace: namespace,
+			}
+		},
+	}
+
+	return newListModel(size, options, msgCh)
+}
+
 func (m containersModel) Init() tea.Cmd {
 	return tea.Batch(m.model.StartSpinner())
 }

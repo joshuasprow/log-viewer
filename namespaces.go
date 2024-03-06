@@ -31,6 +31,21 @@ func newNamespacesModel(
 	}
 }
 
+func newNamespacesModelNext(
+	size tea.WindowSizeMsg,
+	msgCh chan<- tea.Msg,
+) tea.Model {
+	options := listModelOptions[namespaceListItem]{
+		onEnter: func(selected namespaceListItem, msgCh chan<- tea.Msg) {
+			msgCh <- apisViewMsg{
+				namespace: string(selected),
+			}
+		},
+	}
+
+	return newListModel(size, options, msgCh)
+}
+
 func (m namespacesModel) Init() tea.Cmd {
 	return m.model.StartSpinner()
 }
