@@ -30,7 +30,7 @@ func main() {
 	log.SetOutput(logFile)
 
 	prg := tea.NewProgram(
-		newAppModel(msgCh),
+		newMainModel(msgCh),
 		tea.WithAltScreen(),
 		tea.WithContext(ctx),
 	)

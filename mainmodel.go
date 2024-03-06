@@ -6,30 +6,30 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type appModel struct {
+type mainModel struct {
 	msgCh chan<- tea.Msg
 	size  tea.WindowSizeMsg
 	view  tea.Model
 	data  viewData
 }
 
-func newAppModel(msgCh chan<- tea.Msg) appModel {
+func newMainModel(msgCh chan<- tea.Msg) mainModel {
 	size := tea.WindowSizeMsg{Width: 80, Height: 24}
 
-	return appModel{
+	return mainModel{
 		msgCh: msgCh,
 		size:  size,
 	}
 }
 
-func (m appModel) Init() tea.Cmd {
+func (m mainModel) Init() tea.Cmd {
 	return func() tea.Msg {
 		m.msgCh <- namespacesViewMsg{}
 		return nil
 	}
 }
 
-func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.size.Width = msg.Width
@@ -88,7 +88,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m appModel) View() string {
+func (m mainModel) View() string {
 	var v string
 	if m.view == nil {
 		v = spinner.New().View()
