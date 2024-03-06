@@ -54,19 +54,19 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.size.Height = msg.Height - 1 // todo: fixes list title disappearing
 	case namespacesViewMsg:
 		m.key = namespacesKey
-		m.view = newNamespacesModelNext(m.size, m.msgCh)
+		m.view = newNamespacesModel(m.size, m.msgCh)
 
 		return m, m.view.Init()
 	case apisViewMsg:
 		m.key = apisKey
 		m.data.namespace = msg.namespace
-		m.view = newApisModelNext(m.size, m.data.namespace, m.msgCh)
+		m.view = newApisModel(m.size, m.data.namespace, m.msgCh)
 
 		return m, m.view.Init()
 	case containersViewMsg:
 		m.key = containersKey
 		m.data.namespace = msg.namespace
-		m.view = newContainersModelNext(m.size, m.data.namespace, m.msgCh)
+		m.view = newContainersModel(m.size, m.data.namespace, m.msgCh)
 
 		return m, m.view.Init()
 	case containerLogsViewMsg:

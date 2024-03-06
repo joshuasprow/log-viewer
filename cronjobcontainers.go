@@ -5,6 +5,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joshuasprow/log-viewer/k8s"
 	"github.com/joshuasprow/log-viewer/models"
+	"github.com/joshuasprow/log-viewer/tui"
 )
 
 type cronJobContainersModel struct {
@@ -51,7 +52,7 @@ func (m cronJobContainersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		items := []list.Item{}
 
 		for _, c := range msg {
-			items = append(items, containerListItem(c))
+			items = append(items, tui.Container{Container: c})
 		}
 
 		m.model.SetItems(items)
@@ -68,5 +69,5 @@ func (m cronJobContainersModel) View() string {
 }
 
 func (m cronJobContainersModel) Selected() k8s.Container {
-	return k8s.Container(m.model.SelectedItem().(containerListItem))
+	return m.model.SelectedItem().(tui.Container).Container
 }
