@@ -3,6 +3,7 @@ package k8s
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -23,12 +24,10 @@ func GetJobs(
 	[]Job,
 	error,
 ) {
-	labelSelector := fmt.Sprintf("controller-uid=%s", string(cronJobUID))
-
 	list, err := clientset.
 		BatchV1().
 		Jobs(namespace).
-		List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
+		List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("list jobs: %w", err)
 	}
@@ -36,10 +35,17 @@ func GetJobs(
 	jobs := []Job{}
 
 	for _, item := range list.Items {
-		jobs = append(jobs, Job{
-			Namespace: item.Namespace,
-			Name:      item.Name,
-		})
+		if slices.ContainsFunc(
+			item.OwnerReferences,
+			func(r metav1.OwnerReference) bool {
+				return r.UID == cronJobUID
+			},
+		) {
+			jobs = append(jobs, Job{
+				Namespace: item.Namespace,
+				Name:      item.Name,
+			})
+		}
 	}
 
 	return jobs, nil

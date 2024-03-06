@@ -25,7 +25,7 @@ func GetCronJobs(
 	error,
 ) {
 	list, err := clientset.BatchV1().
-		Jobs(namespace).
+		CronJobs(namespace).
 		List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("list pods: %w", err)
