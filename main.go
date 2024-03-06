@@ -81,18 +81,22 @@ func handleMessages(
 
 			prg.Send(tui.WrapCronJobs(cronJobs))
 		case cronJobJobsViewMsg:
+			jobs, err := k8s.GetJobs(ctx, clientset, msg.cronJob.Namespace, msg.cronJob.UID)
+			check("get jobs", err)
+
+			prg.Send(tui.WrapJobs(jobs))
 		case cronJobContainersViewMsg:
 			labelSelector := fmt.Sprintf("job-name=%s", msg.job.Name)
 
 			containers, err := k8s.GetContainers(ctx, clientset, msg.job.Namespace, labelSelector)
 			check("get job containers", err)
 
-			prg.Send(cronJobContainersDataMsg(containers))
+			prg.Send(tui.WrapContainers(containers))
 		case cronJobLogsViewMsg:
 			logs, err := k8s.GetPodLogs(ctx, clientset, msg.container.Namespace, msg.container.Pod, msg.container.Name)
 			check("get pod logs", err)
 
-			prg.Send(cronJobLogsDataMsg(logs))
+			prg.Send(tui.WrapLogs(logs))
 		default:
 			check("unknown message", fmt.Errorf("type %T", msg))
 		}

@@ -84,7 +84,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case cronJobJobsViewMsg:
 		m.key = cronJobJobsKey
 		m.data.cronJob = msg.cronJob
-		m.view = newCronJobJobsModel(m.size, m.data.cronJob, m.msgCh)
+		m.view = newCronJobJobsModel(m.size, m.data.namespace, m.msgCh)
 
 		return m, m.view.Init()
 	case cronJobContainersViewMsg:

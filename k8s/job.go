@@ -9,37 +9,38 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-type CronJob struct {
+type Job struct {
 	Namespace string
-	UID       types.UID
 	Name      string
-	Jobs      []Job
 }
 
-func GetCronJobs(
+func GetJobs(
 	ctx context.Context,
 	clientset *kubernetes.Clientset,
 	namespace string,
+	cronJobUID types.UID,
 ) (
-	[]CronJob,
+	[]Job,
 	error,
 ) {
-	list, err := clientset.BatchV1().
+	labelSelector := fmt.Sprintf("controller-uid=%s", string(cronJobUID))
+
+	list, err := clientset.
+		BatchV1().
 		Jobs(namespace).
-		List(ctx, metav1.ListOptions{})
+		List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
-		return nil, fmt.Errorf("list pods: %w", err)
+		return nil, fmt.Errorf("list jobs: %w", err)
 	}
 
-	cronJobs := []CronJob{}
+	jobs := []Job{}
 
 	for _, item := range list.Items {
-		cronJobs = append(cronJobs, CronJob{
+		jobs = append(jobs, Job{
 			Namespace: item.Namespace,
-			UID:       item.UID,
 			Name:      item.Name,
 		})
 	}
 
-	return cronJobs, nil
+	return jobs, nil
 }
