@@ -22,7 +22,7 @@ func newNamespacesModel(
 	msgCh chan<- tea.Msg,
 ) namespacesModel {
 	m := models.DefaultListModel()
-	m.Title = "namespaces"
+	m.Title = renderTitle("select a namespaces")
 	m.SetSize(size.Width, size.Height)
 
 	return namespacesModel{

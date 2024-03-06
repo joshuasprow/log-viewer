@@ -21,7 +21,7 @@ func newCronJobContainersModel(
 	m := models.DefaultListModel()
 	m.SetFilteringEnabled(true)
 	m.SetSize(size.Width, size.Height)
-	m.Title = "cronJobContainers"
+	m.Title = renderTitle(cronJob.Namespace, cronJob.Name, "select a container")
 
 	return cronJobContainersModel{
 		model:   &m,

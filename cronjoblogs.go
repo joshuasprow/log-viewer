@@ -9,8 +9,8 @@ import (
 
 type cronJobLogsModel struct {
 	model *list.Model
-	msgCh chan<- tea.Msg
 	job   k8s.Job
+	msgCh chan<- tea.Msg
 }
 
 func newCronJobLogsModel(
@@ -21,7 +21,7 @@ func newCronJobLogsModel(
 	m := models.DefaultListModel()
 	m.SetFilteringEnabled(true)
 	m.SetSize(size.Width, size.Height)
-	m.Title = "cronJob logs"
+	m.Title = renderTitle(job.Namespace, job.Name, "logs")
 
 	return cronJobLogsModel{
 		model: &m,

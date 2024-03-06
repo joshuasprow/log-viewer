@@ -23,7 +23,7 @@ func newApisViewModel(
 		cronJobsKey,
 	})
 	m.SetSize(size.Width, size.Height)
-	m.Title = "apis"
+	m.Title = renderTitle(namespace, "select an api")
 
 	return apisModel{
 		model:     &m,

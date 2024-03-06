@@ -29,7 +29,7 @@ func newContainersModel(
 	m := models.DefaultListModel()
 	m.SetFilteringEnabled(true)
 	m.SetSize(size.Width, size.Height)
-	m.Title = "containers"
+	m.Title = renderTitle(namespace, "select a container")
 
 	return containersModel{
 		model:     &m,

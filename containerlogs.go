@@ -27,7 +27,12 @@ func newContainerLogsModel(
 	m := models.DefaultListModel()
 	m.SetFilteringEnabled(true)
 	m.SetSize(size.Width, size.Height)
-	m.Title = "container logs"
+	m.Title = renderTitle(
+		container.Namespace,
+		container.Pod,
+		container.Name,
+		"logs",
+	)
 
 	return containerLogsModel{
 		model:     &m,

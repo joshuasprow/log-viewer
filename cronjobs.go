@@ -29,7 +29,7 @@ func newCronJobsModel(
 	m := models.DefaultListModel()
 	m.SetFilteringEnabled(true)
 	m.SetSize(size.Width, size.Height)
-	m.Title = "cronJobs"
+	m.Title = renderTitle(namespace, "select a cron job")
 
 	return cronJobsModel{
 		model:     &m,
