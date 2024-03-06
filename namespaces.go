@@ -42,10 +42,8 @@ func (m namespacesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "enter":
-			m.msgCh <- viewMsg{
-				key:  apisKey,
-				data: m.Selected(),
-			}
+			m.msgCh <- apisViewMsg{namespace: m.Selected()}
+			return m, nil
 		}
 	case namespacesDataMsg:
 		items := []list.Item{}

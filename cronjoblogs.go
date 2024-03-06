@@ -41,10 +41,8 @@ func (m cronJobLogsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "esc":
-			m.msgCh <- viewMsg{
-				key:  cronJobContainersKey,
-				data: m.job,
-			}
+			m.msgCh <- cronJobContainersViewMsg{job: m.job}
+			return m, nil
 		}
 	case cronJobLogsDataMsg:
 		items := []list.Item{}

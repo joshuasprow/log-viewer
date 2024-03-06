@@ -47,10 +47,8 @@ func (m containerLogsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "esc":
-			m.msgCh <- viewMsg{
-				key:  containersKey,
-				data: m.container.Namespace,
-			}
+			m.msgCh <- containersViewMsg{namespace: m.container.Namespace}
+			return m, nil
 		}
 	case containerLogsDataMsg:
 		items := []list.Item{}

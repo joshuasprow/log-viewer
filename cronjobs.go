@@ -49,15 +49,11 @@ func (m cronJobsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "esc":
-			m.msgCh <- viewMsg{
-				key:  apisKey,
-				data: m.namespace,
-			}
+			m.msgCh <- apisViewMsg{namespace: m.namespace}
+			return m, nil
 		case "enter":
-			m.msgCh <- viewMsg{
-				key:  cronJobJobsKey,
-				data: k8s.CronJob(m.Selected()),
-			}
+			m.msgCh <- cronJobJobsViewMsg{cronJob: m.Selected()}
+			return m, nil
 		}
 	case cronJobsDataMsg:
 		items := []list.Item{}
@@ -79,6 +75,6 @@ func (m cronJobsModel) View() string {
 	return m.model.View()
 }
 
-func (m cronJobsModel) Selected() cronJobListItem {
-	return m.model.SelectedItem().(cronJobListItem)
+func (m cronJobsModel) Selected() k8s.CronJob {
+	return k8s.CronJob(m.model.SelectedItem().(cronJobListItem))
 }

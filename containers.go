@@ -49,15 +49,11 @@ func (m containersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "esc":
-			m.msgCh <- viewMsg{
-				key:  apisKey,
-				data: m.namespace,
-			}
+			m.msgCh <- apisViewMsg{namespace: m.namespace}
+			return m, nil
 		case "enter":
-			m.msgCh <- viewMsg{
-				key:  containerLogsKey,
-				data: k8s.Container(m.Selected()),
-			}
+			m.msgCh <- containerLogsViewMsg{container: m.Selected()}
+			return m, nil
 		}
 	case containersDataMsg:
 		items := []list.Item{}
@@ -79,6 +75,6 @@ func (m containersModel) View() string {
 	return m.model.View()
 }
 
-func (m containersModel) Selected() containerListItem {
-	return m.model.SelectedItem().(containerListItem)
+func (m containersModel) Selected() k8s.Container {
+	return k8s.Container(m.model.SelectedItem().(containerListItem))
 }

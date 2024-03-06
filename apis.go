@@ -43,13 +43,16 @@ func (m apisModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "esc":
-			m.msgCh <- viewMsg{
-				key: namespacesKey,
-			}
+			m.msgCh <- namespacesViewMsg{}
+			return m, nil
 		case "enter":
-			m.msgCh <- viewMsg{
-				key:  viewKey(m.Selected()),
-				data: m.namespace,
+			switch m.Selected() {
+			case containersKey:
+				m.msgCh <- containersViewMsg{namespace: m.namespace}
+				return m, nil
+			case cronJobsKey:
+				m.msgCh <- cronJobsViewMsg{namespace: m.namespace}
+				return m, nil
 			}
 		}
 	}

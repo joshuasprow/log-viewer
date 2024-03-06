@@ -16,15 +16,14 @@ func (n jobListItem) FilterValue() string {
 }
 
 type cronJobJobsModel struct {
-	model     *list.Model
-	namespace string
-	msgCh     chan<- tea.Msg
+	model   *list.Model
+	cronJob k8s.CronJob
+	msgCh   chan<- tea.Msg
 }
 
 func newCronJobJobsModel(
 	size tea.WindowSizeMsg,
-	namespace string,
-	jobs []k8s.Job,
+	cronJob k8s.CronJob,
 	msgCh chan<- tea.Msg,
 ) cronJobJobsModel {
 	m := models.DefaultListModel()
@@ -34,16 +33,16 @@ func newCronJobJobsModel(
 
 	items := []list.Item{}
 
-	for _, job := range jobs {
+	for _, job := range cronJob.Jobs {
 		items = append(items, jobListItem(job))
 	}
 
 	m.SetItems(items)
 
 	return cronJobJobsModel{
-		model:     &m,
-		namespace: namespace,
-		msgCh:     msgCh,
+		model:   &m,
+		cronJob: cronJob,
+		msgCh:   msgCh,
 	}
 }
 
@@ -56,15 +55,11 @@ func (m cronJobJobsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "esc":
-			m.msgCh <- viewMsg{
-				key:  cronJobsKey,
-				data: m.namespace,
-			}
+			m.msgCh <- cronJobsViewMsg{namespace: m.cronJob.Namespace}
+			return m, nil
 		case "enter":
-			m.msgCh <- viewMsg{
-				key:  cronJobContainersKey,
-				data: k8s.Job(m.Selected()),
-			}
+			m.msgCh <- cronJobContainersViewMsg{job: m.Selected()}
+			return m, nil
 		}
 	}
 
@@ -77,6 +72,6 @@ func (m cronJobJobsModel) View() string {
 	return m.model.View()
 }
 
-func (m cronJobJobsModel) Selected() jobListItem {
-	return m.model.SelectedItem().(jobListItem)
+func (m cronJobJobsModel) Selected() k8s.Job {
+	return k8s.Job(m.model.SelectedItem().(jobListItem))
 }

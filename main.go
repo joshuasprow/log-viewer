@@ -57,53 +57,40 @@ func handleMessages(
 		prg.Send(msg)
 
 		switch msg := msg.(type) {
-		case viewMsg:
-			switch msg.key {
-			case namespacesKey:
-				namespaces, err := k8s.GetNamespaces(ctx, clientset)
-				check("get namespaces", err)
+		case namespacesViewMsg:
+			namespaces, err := k8s.GetNamespaces(ctx, clientset)
+			check("get namespaces", err)
 
-				prg.Send(namespacesDataMsg(namespaces))
-			case apisKey:
-			case containersKey:
-				namespace := msg.data.(string)
+			prg.Send(namespacesDataMsg(namespaces))
+		case apisViewMsg:
+		case containersViewMsg:
+			containers, err := k8s.GetContainers(ctx, clientset, msg.namespace, "")
+			check("get containers", err)
 
-				containers, err := k8s.GetContainers(ctx, clientset, namespace, "")
-				check("get containers", err)
+			prg.Send(containersDataMsg(containers))
+		case containerLogsViewMsg:
+			logs, err := k8s.GetPodLogs(ctx, clientset, msg.container.Namespace, msg.container.Pod, msg.container.Name)
+			check("get pod logs", err)
 
-				prg.Send(containersDataMsg(containers))
-			case containerLogsKey:
-				container := msg.data.(k8s.Container)
+			prg.Send(containerLogsDataMsg(logs))
+		case cronJobsViewMsg:
+			cronJobs, err := k8s.GetCronJobs(ctx, clientset, msg.namespace)
+			check("get cron jobs", err)
 
-				logs, err := k8s.GetPodLogs(ctx, clientset, container.Namespace, container.Pod, container.Name)
-				check("get pod logs", err)
+			prg.Send(cronJobsDataMsg(cronJobs))
+		case cronJobJobsViewMsg:
+		case cronJobContainersViewMsg:
+			labelSelector := fmt.Sprintf("job-name=%s", msg.job.Name)
 
-				prg.Send(containerLogsDataMsg(logs))
-			case cronJobsKey:
-				namespace := msg.data.(string)
+			containers, err := k8s.GetContainers(ctx, clientset, msg.job.Namespace, labelSelector)
+			check("get job containers", err)
 
-				cronJobs, err := k8s.GetCronJobs(ctx, clientset, namespace)
-				check("get cron jobs", err)
+			prg.Send(cronJobContainersDataMsg(containers))
+		case cronJobLogsViewMsg:
+			logs, err := k8s.GetPodLogs(ctx, clientset, msg.container.Namespace, msg.container.Pod, msg.container.Name)
+			check("get pod logs", err)
 
-				prg.Send(cronJobsDataMsg(cronJobs))
-			case cronJobJobsKey:
-			// todo: do nothing since jobs are stored in cronJob struct?
-			case cronJobContainersKey:
-				job := msg.data.(k8s.Job)
-				labelSelector := fmt.Sprintf("job-name=%s", job.Name)
-
-				containers, err := k8s.GetContainers(ctx, clientset, job.Namespace, labelSelector)
-				check("get job containers", err)
-
-				prg.Send(cronJobContainersDataMsg(containers))
-			case cronJobLogsKey:
-				container := msg.data.(k8s.Container)
-
-				logs, err := k8s.GetPodLogs(ctx, clientset, container.Namespace, container.Pod, container.Name)
-				check("get pod logs", err)
-
-				prg.Send(cronJobLogsDataMsg(logs))
-			}
+			prg.Send(cronJobLogsDataMsg(logs))
 		default:
 			check("unknown message", fmt.Errorf("type %T", msg))
 		}

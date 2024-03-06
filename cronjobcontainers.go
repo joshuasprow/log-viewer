@@ -21,7 +21,7 @@ func newCronJobContainersModel(
 	m := models.DefaultListModel()
 	m.SetFilteringEnabled(true)
 	m.SetSize(size.Width, size.Height)
-	m.Title = "jobContainers"
+	m.Title = "cronJobContainers"
 
 	return cronJobContainersModel{
 		model:   &m,
@@ -41,15 +41,11 @@ func (m cronJobContainersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "esc":
-			m.msgCh <- viewMsg{
-				key:  cronJobJobsKey,
-				data: m.cronJob,
-			}
+			m.msgCh <- cronJobJobsViewMsg{cronJob: m.cronJob}
+			return m, nil
 		case "enter":
-			m.msgCh <- viewMsg{
-				key:  cronJobLogsKey,
-				data: k8s.Container(m.Selected()),
-			}
+			m.msgCh <- cronJobLogsViewMsg{container: m.Selected()}
+			return m, nil
 		}
 	case cronJobContainersDataMsg:
 		items := []list.Item{}
@@ -71,6 +67,6 @@ func (m cronJobContainersModel) View() string {
 	return m.model.View()
 }
 
-func (m cronJobContainersModel) Selected() containerListItem {
-	return m.model.SelectedItem().(containerListItem)
+func (m cronJobContainersModel) Selected() k8s.Container {
+	return k8s.Container(m.model.SelectedItem().(containerListItem))
 }
