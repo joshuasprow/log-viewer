@@ -11,6 +11,7 @@ func newContainersModel(
 	msgCh chan<- tea.Msg,
 ) tea.Model {
 	options := listModelOptions[tui.Container]{
+		title: renderTitle(namespace, "select a container"),
 		onEnter: func(selected tui.Container, msgCh chan<- tea.Msg) {
 			msgCh <- containerLogsViewMsg{
 				container: selected.Container,

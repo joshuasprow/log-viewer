@@ -10,6 +10,7 @@ func newNamespacesModel(
 	msgCh chan<- tea.Msg,
 ) tea.Model {
 	options := listModelOptions[tui.Namespace]{
+		title: renderTitle("select a namespace"),
 		onEnter: func(selected tui.Namespace, msgCh chan<- tea.Msg) {
 			msgCh <- apisViewMsg{
 				namespace: string(selected),

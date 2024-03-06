@@ -11,6 +11,7 @@ func newApisModel(
 	msgCh chan<- tea.Msg,
 ) tea.Model {
 	options := listModelOptions[tui.Api]{
+		title: renderTitle(namespace, "select an API"),
 		onEnter: func(selected tui.Api, msgCh chan<- tea.Msg) {
 			switch selected {
 			case tui.ContainersApi:

@@ -15,6 +15,7 @@ type listModel[ItemType any] struct {
 type listModelOptions[ItemType any] struct {
 	onEnter func(selected ItemType, msgCh chan<- tea.Msg)
 	onEsc   func(msgCh chan<- tea.Msg)
+	title   string
 }
 
 func newListModel[ItemType any](
@@ -25,6 +26,7 @@ func newListModel[ItemType any](
 	m := models.DefaultListModel()
 	m.SetFilteringEnabled(true)
 	m.SetSize(size.Width, size.Height)
+	m.Title = options.title
 
 	return listModel[ItemType]{
 		model:   &m,

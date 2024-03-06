@@ -6,23 +6,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func renderTitle(path ...string) string {
-	var title string
-	for i, p := range path {
-		if i > 0 {
-			title += " > "
-		}
-		color := "#FF00FF"
-		if i == len(path)-1 {
-			color = "#00FF00"
-		}
-		title += lipgloss.NewStyle().
-			Foreground(lipgloss.Color(color)).
-			Render(p)
-	}
-	return title
-}
-
 type appModel struct {
 	msgCh chan<- tea.Msg
 	size  tea.WindowSizeMsg
@@ -72,7 +55,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case containerLogsViewMsg:
 		m.key = containerLogsKey
 		m.data.container = msg.container
-		m.view = newContainerLogsModel(m.size, m.data.namespace, m.msgCh)
+		m.view = newContainerLogsModel(m.size, m.data.container, m.msgCh)
 
 		return m, m.view.Init()
 	case cronJobsViewMsg:
@@ -84,19 +67,30 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case cronJobJobsViewMsg:
 		m.key = cronJobJobsKey
 		m.data.cronJob = msg.cronJob
-		m.view = newCronJobJobsModel(m.size, m.data.namespace, m.msgCh)
+		m.view = newCronJobJobsModel(m.size, m.data.cronJob, m.msgCh)
 
 		return m, m.view.Init()
 	case cronJobContainersViewMsg:
 		m.key = cronJobContainersKey
 		m.data.cronJobJob = msg.job
-		m.view = newCronJobContainersModel(m.size, m.data.cronJob, m.msgCh)
+		m.view = newCronJobContainersModel(
+			m.size,
+			m.data.cronJob,
+			m.data.cronJobJob,
+			m.msgCh,
+		)
 
 		return m, m.view.Init()
 	case cronJobLogsViewMsg:
 		m.key = cronJobLogsKey
 		m.data.cronJobContainer = msg.container
-		m.view = newCronJobLogsModel(m.size, m.data.cronJobJob, m.msgCh)
+		m.view = newCronJobLogsModel(
+			m.size,
+			m.data.cronJob,
+			m.data.cronJobJob,
+			m.data.cronJobContainer,
+			m.msgCh,
+		)
 	}
 
 	var cmd tea.Cmd
