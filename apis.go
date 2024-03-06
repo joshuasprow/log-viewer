@@ -15,9 +15,15 @@ func newApisModel(
 		onEnter: func(selected tui.Api, msgCh chan<- tea.Msg) {
 			switch selected {
 			case tui.ContainersApi:
-				msgCh <- containersViewMsg{namespace: namespace}
+				msgCh <- containersViewMsg{
+					namespace: namespace,
+					api:       selected,
+				}
 			case tui.CronJobsApi:
-				msgCh <- cronJobsViewMsg{namespace: namespace}
+				msgCh <- cronJobsViewMsg{
+					namespace: namespace,
+					api:       selected,
+				}
 			}
 		},
 		onEsc: func(msgCh chan<- tea.Msg) {

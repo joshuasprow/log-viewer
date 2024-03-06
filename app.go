@@ -9,7 +9,6 @@ import (
 type appModel struct {
 	msgCh chan<- tea.Msg
 	size  tea.WindowSizeMsg
-	key   viewKey
 	view  tea.Model
 	data  viewData
 }
@@ -36,42 +35,37 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.size.Width = msg.Width
 		m.size.Height = msg.Height - 1 // todo: fixes list title disappearing
 	case namespacesViewMsg:
-		m.key = namespacesKey
 		m.view = newNamespacesModel(m.size, m.msgCh)
 
 		return m, m.view.Init()
 	case apisViewMsg:
-		m.key = apisKey
 		m.data.namespace = msg.namespace
 		m.view = newApisModel(m.size, m.data.namespace, m.msgCh)
 
 		return m, m.view.Init()
 	case containersViewMsg:
-		m.key = containersKey
 		m.data.namespace = msg.namespace
+		m.data.api = msg.api
 		m.view = newContainersModel(m.size, m.data.namespace, m.msgCh)
 
 		return m, m.view.Init()
 	case containerLogsViewMsg:
-		m.key = containerLogsKey
 		m.data.container = msg.container
 		m.view = newContainerLogsModel(m.size, m.data.container, m.msgCh)
 
 		return m, m.view.Init()
 	case cronJobsViewMsg:
-		m.key = cronJobsKey
 		m.data.namespace = msg.namespace
+		m.data.api = msg.api
 		m.view = newCronJobsModel(m.size, m.data.namespace, m.msgCh)
 
 		return m, m.view.Init()
 	case cronJobJobsViewMsg:
-		m.key = cronJobJobsKey
 		m.data.cronJob = msg.cronJob
 		m.view = newCronJobJobsModel(m.size, m.data.cronJob, m.msgCh)
 
 		return m, m.view.Init()
 	case cronJobContainersViewMsg:
-		m.key = cronJobContainersKey
 		m.data.cronJobJob = msg.job
 		m.view = newCronJobContainersModel(
 			m.size,
@@ -82,7 +76,6 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, m.view.Init()
 	case cronJobLogsViewMsg:
-		m.key = cronJobLogsKey
 		m.data.cronJobContainer = msg.container
 		m.view = newCronJobLogsModel(
 			m.size,

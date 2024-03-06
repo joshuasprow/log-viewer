@@ -37,9 +37,7 @@ func GetJobs(
 	for _, item := range list.Items {
 		if slices.ContainsFunc(
 			item.OwnerReferences,
-			func(r metav1.OwnerReference) bool {
-				return r.UID == cronJobUID
-			},
+			func(r metav1.OwnerReference) bool { return r.UID == cronJobUID },
 		) {
 			jobs = append(jobs, Job{
 				Namespace: item.Namespace,
