@@ -36,34 +36,28 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.size.Height = msg.Height - 1 // todo: fixes list title disappearing
 	case namespacesViewMsg:
 		m.view = newNamespacesModel(m.size, m.msgCh)
-
 		return m, m.view.Init()
 	case apisViewMsg:
 		m.data.namespace = msg.namespace
 		m.view = newApisModel(m.size, m.data.namespace, m.msgCh)
-
 		return m, m.view.Init()
 	case containersViewMsg:
 		m.data.namespace = msg.namespace
 		m.data.api = msg.api
 		m.view = newContainersModel(m.size, m.data.namespace, m.msgCh)
-
 		return m, m.view.Init()
 	case containerLogsViewMsg:
 		m.data.container = msg.container
 		m.view = newContainerLogsModel(m.size, m.data.container, m.msgCh)
-
 		return m, m.view.Init()
 	case cronJobsViewMsg:
 		m.data.namespace = msg.namespace
 		m.data.api = msg.api
 		m.view = newCronJobsModel(m.size, m.data.namespace, m.msgCh)
-
 		return m, m.view.Init()
 	case cronJobJobsViewMsg:
 		m.data.cronJob = msg.cronJob
 		m.view = newCronJobJobsModel(m.size, m.data.cronJob, m.msgCh)
-
 		return m, m.view.Init()
 	case cronJobContainersViewMsg:
 		m.data.cronJobJob = msg.job
@@ -73,7 +67,6 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.data.cronJobJob,
 			m.msgCh,
 		)
-
 		return m, m.view.Init()
 	case cronJobLogsViewMsg:
 		m.data.cronJobContainer = msg.container
@@ -86,12 +79,12 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		)
 	}
 
-	var cmd tea.Cmd
-
-	if m.view != nil {
-		m.view, cmd = m.view.Update(msg)
+	if m.view == nil {
+		return m, nil
 	}
 
+	var cmd tea.Cmd
+	m.view, cmd = m.view.Update(msg)
 	return m, cmd
 }
 
@@ -102,6 +95,5 @@ func (m appModel) View() string {
 	} else {
 		v = m.view.View()
 	}
-
 	return lipgloss.JoinVertical(lipgloss.Left, v)
 }
