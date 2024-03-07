@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -11,8 +12,12 @@ import (
 )
 
 type Job struct {
-	Namespace string
-	Name      string
+	Namespace      string
+	Name           string
+	StartTime      time.Time
+	CompletionTime time.Time
+	Failed         int32
+	Succeeded      int32
 }
 
 func GetJobs(
@@ -39,9 +44,23 @@ func GetJobs(
 			item.OwnerReferences,
 			func(r metav1.OwnerReference) bool { return r.UID == cronJobUID },
 		) {
+			st := time.Time{}
+			ct := time.Time{}
+
+			if item.Status.StartTime != nil {
+				st = item.Status.StartTime.Time
+			}
+			if item.Status.CompletionTime != nil {
+				ct = item.Status.CompletionTime.Time
+			}
+
 			jobs = append(jobs, Job{
-				Namespace: item.Namespace,
-				Name:      item.Name,
+				Namespace:      item.Namespace,
+				Name:           item.Name,
+				StartTime:      st,
+				CompletionTime: ct,
+				Failed:         item.Status.Failed,
+				Succeeded:      item.Status.Succeeded,
 			})
 		}
 	}

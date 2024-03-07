@@ -11,8 +11,25 @@ type Job struct {
 	k8s.Job
 }
 
+func (j Job) Title() string {
+	icon := "✅"
+	if j.Failed > 0 {
+		icon = "🚫"
+	}
+	return fmt.Sprintf("%s %s.%s", icon, j.Namespace, j.Name)
+}
+
+func (j Job) Description() string {
+	return fmt.Sprintf(
+		"start_time=%s failed=%d succeeded=%d",
+		j.StartTime.Format("2006-01-02T15:04:05"),
+		j.Failed,
+		j.Succeeded,
+	)
+}
+
 func (j Job) FilterValue() string {
-	return fmt.Sprintf("%s.%s", j.Namespace, j.Name)
+	return j.Title()
 }
 
 func WrapJobs(jobs []k8s.Job) []list.Item {

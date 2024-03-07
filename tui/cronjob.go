@@ -17,8 +17,8 @@ func (c CronJob) Title() string {
 
 func (c CronJob) Description() string {
 	return fmt.Sprintf(
-		"last run - %s",
-		c.LastScheduleTime.Format("2006-01-02 15:04:05"),
+		"last_scheduled=%s",
+		c.LastScheduleTime.Format("2006-01-02T15:04:05"),
 	)
 }
 
