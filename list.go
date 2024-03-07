@@ -13,9 +13,10 @@ type listModel[ItemType any] struct {
 }
 
 type listModelOptions[ItemType any] struct {
-	onEnter func(selected ItemType, msgCh chan<- tea.Msg)
-	onEsc   func(msgCh chan<- tea.Msg)
-	title   string
+	onEnter         func(selected ItemType, msgCh chan<- tea.Msg)
+	onEsc           func(msgCh chan<- tea.Msg)
+	showDescription bool
+	title           string
 }
 
 func newListModel[ItemType any](

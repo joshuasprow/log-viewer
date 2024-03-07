@@ -9,8 +9,8 @@ func (a Api) FilterValue() string {
 }
 
 const (
-	ContainersApi Api = "Containers"
-	CronJobsApi   Api = "CronJobs"
+	ContainersApi Api = "containers"
+	CronJobsApi   Api = "cron jobs"
 )
 
 func GetApis() []list.Item {

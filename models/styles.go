@@ -6,13 +6,19 @@ import (
 )
 
 var listItemStyles = struct {
-	Normal   lipgloss.Style
-	Selected lipgloss.Style
+	Normal      lipgloss.Style
+	Selected    lipgloss.Style
+	Description lipgloss.Style
 }{
 	Normal: lipgloss.NewStyle().PaddingLeft(4),
-	Selected: lipgloss.NewStyle().
+	Selected: lipgloss.
+		NewStyle().
 		PaddingLeft(2).
 		Foreground(lipgloss.Color("170")),
+	Description: lipgloss.
+		NewStyle().
+		PaddingLeft(6).
+		Foreground(lipgloss.Color("244")),
 }
 
 var listStyles = struct {

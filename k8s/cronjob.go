@@ -3,6 +3,7 @@ package k8s
 import (
 	"context"
 	"fmt"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -10,10 +11,10 @@ import (
 )
 
 type CronJob struct {
-	Namespace string
-	UID       types.UID
-	Name      string
-	Jobs      []Job
+	Namespace        string
+	UID              types.UID
+	Name             string
+	LastScheduleTime time.Time
 }
 
 func GetCronJobs(
@@ -35,9 +36,10 @@ func GetCronJobs(
 
 	for _, item := range list.Items {
 		cronJobs = append(cronJobs, CronJob{
-			Namespace: item.Namespace,
-			UID:       item.UID,
-			Name:      item.Name,
+			Namespace:        item.Namespace,
+			UID:              item.UID,
+			Name:             item.Name,
+			LastScheduleTime: item.Status.LastScheduleTime.Time,
 		})
 	}
 
