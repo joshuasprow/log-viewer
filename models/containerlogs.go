@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
@@ -7,21 +7,21 @@ import (
 	"github.com/joshuasprow/log-viewer/tui"
 )
 
-func newContainerLogsModel(
+func ContainerLogs(
 	size tea.WindowSizeMsg,
 	container k8s.Container,
 	msgCh chan<- tea.Msg,
 ) tea.Model {
 	options := defaults.ListModelOptions[tui.Log]{
-		Title: renderTitle(
+		Title: tui.RenderTitle(
 			container.Namespace,
 			container.Pod,
 			container.Name,
 			"logs",
 		),
 		OnEsc: func(msgCh chan<- tea.Msg) {
-			msgCh <- containersViewMsg{
-				namespace: container.Namespace,
+			msgCh <- tui.ContainersViewMsg{
+				Namespace: container.Namespace,
 			}
 		},
 	}

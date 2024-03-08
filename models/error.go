@@ -1,10 +1,11 @@
-package main
+package models
 
 import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/joshuasprow/log-viewer/tui"
 )
 
 type errorModel struct {
@@ -13,7 +14,7 @@ type errorModel struct {
 	msgCh chan<- tea.Msg
 }
 
-func newErrorModel(
+func Error(
 	size tea.WindowSizeMsg,
 	err error,
 	msgCh chan<- tea.Msg,
@@ -36,7 +37,7 @@ func (e errorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return e, tea.Quit
 		case "esc":
-			e.msgCh <- namespacesViewMsg{}
+			e.msgCh <- tui.NamespacesViewMsg{}
 		}
 	}
 

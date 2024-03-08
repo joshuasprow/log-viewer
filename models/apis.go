@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
@@ -6,29 +6,29 @@ import (
 	"github.com/joshuasprow/log-viewer/tui"
 )
 
-func newApisModel(
+func Apis(
 	size tea.WindowSizeMsg,
 	namespace string,
 	msgCh chan<- tea.Msg,
 ) tea.Model {
 	options := defaults.ListModelOptions[tui.Api]{
-		Title: renderTitle(namespace, "select an API"),
+		Title: tui.RenderTitle(namespace, "select an API"),
 		OnEnter: func(selected tui.Api, msgCh chan<- tea.Msg) {
 			switch selected {
 			case tui.ContainersApi:
-				msgCh <- containersViewMsg{
-					namespace: namespace,
-					api:       selected,
+				msgCh <- tui.ContainersViewMsg{
+					Namespace: namespace,
+					Api:       selected,
 				}
 			case tui.CronJobsApi:
-				msgCh <- cronJobsViewMsg{
-					namespace: namespace,
-					api:       selected,
+				msgCh <- tui.CronJobsViewMsg{
+					Namespace: namespace,
+					Api:       selected,
 				}
 			}
 		},
 		OnEsc: func(msgCh chan<- tea.Msg) {
-			msgCh <- namespacesViewMsg{}
+			msgCh <- tui.NamespacesViewMsg{}
 		},
 	}
 

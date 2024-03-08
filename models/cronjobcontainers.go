@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
@@ -7,26 +7,27 @@ import (
 	"github.com/joshuasprow/log-viewer/tui"
 )
 
-func newCronJobJobsModel(
+func CronJobContainers(
 	size tea.WindowSizeMsg,
 	cronJob k8s.CronJob,
+	job k8s.Job,
 	msgCh chan<- tea.Msg,
 ) tea.Model {
-	options := defaults.ListModelOptions[tui.Job]{
-		ShowDescription: true,
-		Title: renderTitle(
+	options := defaults.ListModelOptions[tui.Container]{
+		Title: tui.RenderTitle(
 			cronJob.Namespace,
 			cronJob.Name,
-			"select a job",
+			job.Name,
+			"select a container",
 		),
-		OnEnter: func(selected tui.Job, msgCh chan<- tea.Msg) {
-			msgCh <- cronJobContainersViewMsg{
-				job: selected.Job,
+		OnEnter: func(selected tui.Container, msgCh chan<- tea.Msg) {
+			msgCh <- tui.CronJobLogsViewMsg{
+				Container: selected.Container,
 			}
 		},
 		OnEsc: func(msgCh chan<- tea.Msg) {
-			msgCh <- cronJobsViewMsg{
-				namespace: cronJob.Namespace,
+			msgCh <- tui.CronJobJobsViewMsg{
+				CronJob: cronJob,
 			}
 		},
 	}

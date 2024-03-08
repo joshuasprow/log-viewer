@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
@@ -7,7 +7,7 @@ import (
 	"github.com/joshuasprow/log-viewer/tui"
 )
 
-func newCronJobLogsModel(
+func CronJobLogs(
 	size tea.WindowSizeMsg,
 	cronJob k8s.CronJob,
 	job k8s.Job,
@@ -15,7 +15,7 @@ func newCronJobLogsModel(
 	msgCh chan<- tea.Msg,
 ) tea.Model {
 	options := defaults.ListModelOptions[tui.Log]{
-		Title: renderTitle(
+		Title: tui.RenderTitle(
 			cronJob.Namespace,
 			cronJob.Name,
 			job.Name,
@@ -24,8 +24,8 @@ func newCronJobLogsModel(
 			"logs",
 		),
 		OnEsc: func(msgCh chan<- tea.Msg) {
-			msgCh <- cronJobContainersViewMsg{
-				job: job,
+			msgCh <- tui.CronJobContainersViewMsg{
+				Job: job,
 			}
 		},
 	}

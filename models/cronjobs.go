@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
@@ -6,22 +6,25 @@ import (
 	"github.com/joshuasprow/log-viewer/tui"
 )
 
-func newCronJobsModel(
+func CronJobs(
 	size tea.WindowSizeMsg,
 	namespace string,
 	msgCh chan<- tea.Msg,
 ) tea.Model {
 	options := defaults.ListModelOptions[tui.CronJob]{
 		ShowDescription: true,
-		Title:           renderTitle(namespace, "select a cron job"),
+		Title: tui.RenderTitle(
+			namespace,
+			"select a cron job",
+		),
 		OnEnter: func(selected tui.CronJob, msgCh chan<- tea.Msg) {
-			msgCh <- cronJobJobsViewMsg{
-				cronJob: selected.CronJob,
+			msgCh <- tui.CronJobJobsViewMsg{
+				CronJob: selected.CronJob,
 			}
 		},
 		OnEsc: func(msgCh chan<- tea.Msg) {
-			msgCh <- apisViewMsg{
-				namespace: namespace,
+			msgCh <- tui.ApisViewMsg{
+				Namespace: namespace,
 			}
 		},
 	}

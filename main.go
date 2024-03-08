@@ -8,6 +8,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joshuasprow/log-viewer/k8s"
+	"github.com/joshuasprow/log-viewer/models"
 	"github.com/joshuasprow/log-viewer/pkg"
 	"github.com/joshuasprow/log-viewer/tui"
 	"k8s.io/client-go/kubernetes"
@@ -30,7 +31,7 @@ func main() {
 	log.SetOutput(logFile)
 
 	prg := tea.NewProgram(
-		newMainModel(msgCh),
+		models.Main(msgCh),
 		tea.WithAltScreen(),
 		tea.WithContext(ctx),
 	)
@@ -58,42 +59,42 @@ func handleMessages(
 		prg.Send(msg)
 
 		switch msg := msg.(type) {
-		case namespacesViewMsg:
+		case tui.NamespacesViewMsg:
 			namespaces, err := k8s.GetNamespaces(ctx, clientset)
 			check("get namespaces", err)
 
 			prg.Send(tui.WrapNamespaces(namespaces))
-		case apisViewMsg:
+		case tui.ApisViewMsg:
 			prg.Send(tui.GetApis())
-		case containersViewMsg:
-			containers, err := k8s.GetContainers(ctx, clientset, msg.namespace, "")
+		case tui.ContainersViewMsg:
+			containers, err := k8s.GetContainers(ctx, clientset, msg.Namespace, "")
 			check("get containers", err)
 
 			prg.Send(tui.WrapContainers(containers))
-		case containerLogsViewMsg:
-			logs, err := k8s.GetPodLogs(ctx, clientset, msg.container.Namespace, msg.container.Pod, msg.container.Name)
+		case tui.ContainerLogsViewMsg:
+			logs, err := k8s.GetPodLogs(ctx, clientset, msg.Container.Namespace, msg.Container.Pod, msg.Container.Name)
 			check("get pod logs", err)
 
 			prg.Send(tui.WrapLogs(logs))
-		case cronJobsViewMsg:
-			cronJobs, err := k8s.GetCronJobs(ctx, clientset, msg.namespace)
+		case tui.CronJobsViewMsg:
+			cronJobs, err := k8s.GetCronJobs(ctx, clientset, msg.Namespace)
 			check("get cron jobs", err)
 
 			prg.Send(tui.WrapCronJobs(cronJobs))
-		case cronJobJobsViewMsg:
-			jobs, err := k8s.GetJobs(ctx, clientset, msg.cronJob.Namespace, msg.cronJob.UID)
+		case tui.CronJobJobsViewMsg:
+			jobs, err := k8s.GetJobs(ctx, clientset, msg.CronJob.Namespace, msg.CronJob.UID)
 			check("get jobs", err)
 
 			prg.Send(tui.WrapJobs(jobs))
-		case cronJobContainersViewMsg:
-			labelSelector := fmt.Sprintf("job-name=%s", msg.job.Name)
+		case tui.CronJobContainersViewMsg:
+			labelSelector := fmt.Sprintf("job-name=%s", msg.Job.Name)
 
-			containers, err := k8s.GetContainers(ctx, clientset, msg.job.Namespace, labelSelector)
+			containers, err := k8s.GetContainers(ctx, clientset, msg.Job.Namespace, labelSelector)
 			check("get job containers", err)
 
 			prg.Send(tui.WrapContainers(containers))
-		case cronJobLogsViewMsg:
-			logs, err := k8s.GetPodLogs(ctx, clientset, msg.container.Namespace, msg.container.Pod, msg.container.Name)
+		case tui.CronJobLogsViewMsg:
+			logs, err := k8s.GetPodLogs(ctx, clientset, msg.Container.Namespace, msg.Container.Pod, msg.Container.Name)
 			check("get pod logs", err)
 
 			prg.Send(tui.WrapLogs(logs))
