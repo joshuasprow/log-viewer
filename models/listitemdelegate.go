@@ -3,59 +3,78 @@ package models
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
-type listItemDelegate struct{}
+type ListItemDelegate struct {
+	showDescription bool
+	height          int
+	width           int
+}
 
-func (d listItemDelegate) Height() int { return 2 }
+func (d *ListItemDelegate) SetShowDescription(b bool) {
+	d.showDescription = b
+	if b {
+		d.height = 2
+	}
+}
 
-func (d listItemDelegate) Spacing() int { return 0 }
+func (d ListItemDelegate) Height() int {
+	if d.showDescription {
+		return d.height
+	}
+	return 1
+}
 
-func (d listItemDelegate) Update(
+func (d *ListItemDelegate) SetHeight(h int) {
+	d.height = h
+}
+
+func (d ListItemDelegate) Spacing() int { return 0 }
+
+func (d *ListItemDelegate) Update(
 	_ tea.Msg,
-	_ *list.Model,
+	m *list.Model,
 ) tea.Cmd {
+	d.width = m.Width()
+	if d.height == 0 {
+		d.height = 1
+	}
 	return nil
 }
 
-func (d listItemDelegate) Render(
+func (d *ListItemDelegate) Render(
 	w io.Writer,
 	m list.Model,
 	index int,
 	item list.Item,
 ) {
-	fn := listItemStyles.Normal.Render
+	var title string
+
+	if ti, ok := item.(Titled); ok {
+		title = ti.Title()
+	} else {
+		title = item.FilterValue()
+	}
+
 	if index == m.Index() {
-		fn = func(s ...string) string {
-			return listItemStyles.Selected.Render("> " + strings.Join(s, " "))
-		}
-	}
-
-	var text string
-
-	if i, ok := item.(Titled); ok {
-		text = i.Title()
+		title = listItemStyles.SelectedTitle.Render("> " + title)
 	} else {
-		text = item.FilterValue()
+		title = listItemStyles.NormalTitle.Render(title)
 	}
 
-	if i, ok := item.(Described); ok {
-		text = lipgloss.JoinVertical(
-			lipgloss.Left,
-			fn(text),
-			listItemStyles.Description.Render(i.Description()),
-		)
-	} else {
-		text = fn(text)
+	var desc string
+
+	if di, ok := item.(Described); d.showDescription && ok {
+		desc = listItemStyles.Description.Render(di.Description())
 	}
 
-	if _, err := fmt.Fprint(w, text); err != nil {
-		// todo: panic with custom error and handle in main model
-		panic(fmt.Errorf("render list item: %w", err))
+	if desc == "" {
+		fmt.Fprint(w, title)
+		return
 	}
+
+	fmt.Fprint(w, title+"\n"+desc)
 }

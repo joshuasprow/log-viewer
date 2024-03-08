@@ -12,7 +12,12 @@ func newCronJobJobsModel(
 	msgCh chan<- tea.Msg,
 ) tea.Model {
 	options := listModelOptions[tui.Job]{
-		title: renderTitle(cronJob.Namespace, cronJob.Name, "select a job"),
+		showDescription: true,
+		title: renderTitle(
+			cronJob.Namespace,
+			cronJob.Name,
+			"select a job",
+		),
 		onEnter: func(selected tui.Job, msgCh chan<- tea.Msg) {
 			msgCh <- cronJobContainersViewMsg{
 				job: selected.Job,

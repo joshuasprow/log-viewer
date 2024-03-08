@@ -1,7 +1,9 @@
 package main
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joshuasprow/log-viewer/models"
 )
@@ -24,15 +26,43 @@ func newListModel[ItemType any](
 	options listModelOptions[ItemType],
 	msgCh chan<- tea.Msg,
 ) listModel[ItemType] {
-	m := models.DefaultListModel()
+	d := &models.ListItemDelegate{}
+	d.SetShowDescription(options.showDescription)
+
+	m := list.New([]list.Item{}, d, 0, 0)
+
 	m.SetFilteringEnabled(true)
+	m.SetShowStatusBar(false)
 	m.SetSize(size.Width, size.Height)
+	m.SetSpinner(spinner.Dot)
 	m.Title = options.title
+
+	// prevents esc as a quit key
+	m.KeyMap.Quit = key.NewBinding(
+		key.WithKeys("q"),
+		key.WithHelp("q", "quit"),
+	)
+
+	m.AdditionalFullHelpKeys = func() []key.Binding {
+		return []key.Binding{
+			key.NewBinding(
+				key.WithKeys("esc"),
+				key.WithHelp("esc", "previous page"),
+			),
+		}
+	}
+
+	m.Styles.NoItems = models.ListStyles.NoItems
+	m.Styles.HelpStyle = models.ListStyles.Help
+	m.Styles.PaginationStyle = models.ListStyles.Pagination
+	m.Styles.Title = models.ListStyles.Title
+	m.Styles.TitleBar = models.ListStyles.TitleBar
 
 	return listModel[ItemType]{
 		model:   &m,
 		options: options,
-		msgCh:   msgCh,
+
+		msgCh: msgCh,
 	}
 }
 
