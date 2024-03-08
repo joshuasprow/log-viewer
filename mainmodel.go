@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 type mainModel struct {
@@ -11,6 +10,7 @@ type mainModel struct {
 	size  tea.WindowSizeMsg
 	view  tea.Model
 	data  viewData
+	err   error
 }
 
 func newMainModel(msgCh chan<- tea.Msg) mainModel {
@@ -30,6 +30,12 @@ func (m mainModel) Init() tea.Cmd {
 }
 
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.err != nil {
+		m.view = newErrorModel(m.size, m.err, m.msgCh)
+		m.err = nil
+		return m, nil
+	}
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.size.Width = msg.Width
@@ -89,11 +95,8 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m mainModel) View() string {
-	var v string
 	if m.view == nil {
-		v = spinner.New().View()
-	} else {
-		v = m.view.View()
+		return spinner.New().View()
 	}
-	return lipgloss.JoinVertical(lipgloss.Left, v)
+	return m.view.View()
 }

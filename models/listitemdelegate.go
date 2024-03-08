@@ -34,10 +34,7 @@ func (d *ListItemDelegate) SetHeight(h int) {
 
 func (d ListItemDelegate) Spacing() int { return 0 }
 
-func (d *ListItemDelegate) Update(
-	_ tea.Msg,
-	m *list.Model,
-) tea.Cmd {
+func (d *ListItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
 	d.width = m.Width()
 	if d.height == 0 {
 		d.height = 1
