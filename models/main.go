@@ -38,6 +38,9 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
+	case error:
+		m.err = msg
+		return m, nil
 	case tea.WindowSizeMsg:
 		m.size.Width = msg.Width
 		m.size.Height = msg.Height - 1 // todo: fixes list title disappearing

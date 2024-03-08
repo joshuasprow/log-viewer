@@ -49,6 +49,76 @@ func check(msg string, err error) {
 	}
 }
 
+func handleMessage(
+	ctx context.Context,
+	clientset *kubernetes.Clientset,
+	prg *tea.Program,
+	msg tea.Msg,
+) error {
+	// always bounce the message back to the main model
+	prg.Send(msg)
+
+	switch msg := msg.(type) {
+	case tui.NamespacesViewMsg:
+		namespaces, err := k8s.GetNamespaces(ctx, clientset)
+		if err != nil {
+			return fmt.Errorf("get namespaces: %w", err)
+		}
+
+		prg.Send(tui.WrapNamespaces(namespaces))
+	case tui.ApisViewMsg:
+		prg.Send(tui.GetApis())
+	case tui.ContainersViewMsg:
+		containers, err := k8s.GetContainers(ctx, clientset, msg.Namespace, "")
+		if err != nil {
+			return fmt.Errorf("get containers: %w", err)
+		}
+
+		prg.Send(tui.WrapContainers(containers))
+	case tui.ContainerLogsViewMsg:
+		logs, err := k8s.GetPodLogs(ctx, clientset, msg.Container.Namespace, msg.Container.Pod, msg.Container.Name)
+		if err != nil {
+			return fmt.Errorf("get pod logs: %w", err)
+		}
+
+		prg.Send(tui.WrapLogs(logs))
+	case tui.CronJobsViewMsg:
+		cronJobs, err := k8s.GetCronJobs(ctx, clientset, msg.Namespace)
+		if err != nil {
+			return fmt.Errorf("get cron jobs: %w", err)
+		}
+
+		prg.Send(tui.WrapCronJobs(cronJobs))
+	case tui.CronJobJobsViewMsg:
+		jobs, err := k8s.GetJobs(ctx, clientset, msg.CronJob.Namespace, msg.CronJob.UID)
+		if err != nil {
+			return fmt.Errorf("get jobs: %w", err)
+		}
+
+		prg.Send(tui.WrapJobs(jobs))
+	case tui.CronJobContainersViewMsg:
+		labelSelector := fmt.Sprintf("job-name=%s", msg.Job.Name)
+
+		containers, err := k8s.GetContainers(ctx, clientset, msg.Job.Namespace, labelSelector)
+		if err != nil {
+			return fmt.Errorf("get job containers: %w", err)
+		}
+
+		prg.Send(tui.WrapContainers(containers))
+	case tui.CronJobLogsViewMsg:
+		logs, err := k8s.GetPodLogs(ctx, clientset, msg.Container.Namespace, msg.Container.Pod, msg.Container.Name)
+		if err != nil {
+			return fmt.Errorf("get pod logs: %w", err)
+		}
+
+		prg.Send(tui.WrapLogs(logs))
+	default:
+		return fmt.Errorf("unknown message type %T", msg)
+	}
+
+	return nil
+}
+
 func handleMessages(
 	ctx context.Context,
 	clientset *kubernetes.Clientset,
@@ -56,50 +126,9 @@ func handleMessages(
 	msgCh <-chan tea.Msg,
 ) {
 	for msg := range msgCh {
-		prg.Send(msg)
-
-		switch msg := msg.(type) {
-		case tui.NamespacesViewMsg:
-			namespaces, err := k8s.GetNamespaces(ctx, clientset)
-			check("get namespaces", err)
-
-			prg.Send(tui.WrapNamespaces(namespaces))
-		case tui.ApisViewMsg:
-			prg.Send(tui.GetApis())
-		case tui.ContainersViewMsg:
-			containers, err := k8s.GetContainers(ctx, clientset, msg.Namespace, "")
-			check("get containers", err)
-
-			prg.Send(tui.WrapContainers(containers))
-		case tui.ContainerLogsViewMsg:
-			logs, err := k8s.GetPodLogs(ctx, clientset, msg.Container.Namespace, msg.Container.Pod, msg.Container.Name)
-			check("get pod logs", err)
-
-			prg.Send(tui.WrapLogs(logs))
-		case tui.CronJobsViewMsg:
-			cronJobs, err := k8s.GetCronJobs(ctx, clientset, msg.Namespace)
-			check("get cron jobs", err)
-
-			prg.Send(tui.WrapCronJobs(cronJobs))
-		case tui.CronJobJobsViewMsg:
-			jobs, err := k8s.GetJobs(ctx, clientset, msg.CronJob.Namespace, msg.CronJob.UID)
-			check("get jobs", err)
-
-			prg.Send(tui.WrapJobs(jobs))
-		case tui.CronJobContainersViewMsg:
-			labelSelector := fmt.Sprintf("job-name=%s", msg.Job.Name)
-
-			containers, err := k8s.GetContainers(ctx, clientset, msg.Job.Namespace, labelSelector)
-			check("get job containers", err)
-
-			prg.Send(tui.WrapContainers(containers))
-		case tui.CronJobLogsViewMsg:
-			logs, err := k8s.GetPodLogs(ctx, clientset, msg.Container.Namespace, msg.Container.Pod, msg.Container.Name)
-			check("get pod logs", err)
-
-			prg.Send(tui.WrapLogs(logs))
-		default:
-			check("unknown message", fmt.Errorf("type %T", msg))
+		if err := handleMessage(ctx, clientset, prg, msg); err != nil {
+			log.Printf("handle message: %v\n", err)
+			prg.Send(err)
 		}
 	}
 }
