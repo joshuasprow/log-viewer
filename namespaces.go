@@ -2,6 +2,7 @@ package main
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/joshuasprow/log-viewer/models/defaults"
 	"github.com/joshuasprow/log-viewer/tui"
 )
 
@@ -9,14 +10,14 @@ func newNamespacesModel(
 	size tea.WindowSizeMsg,
 	msgCh chan<- tea.Msg,
 ) tea.Model {
-	options := listModelOptions[tui.Namespace]{
-		title: renderTitle("select a namespace"),
-		onEnter: func(selected tui.Namespace, msgCh chan<- tea.Msg) {
+	options := defaults.ListModelOptions[tui.Namespace]{
+		Title: renderTitle("select a namespace"),
+		OnEnter: func(selected tui.Namespace, msgCh chan<- tea.Msg) {
 			msgCh <- apisViewMsg{
 				namespace: string(selected),
 			}
 		},
 	}
 
-	return newListModel(size, options, msgCh)
+	return defaults.NewListModel(size, options, msgCh)
 }

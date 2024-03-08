@@ -3,6 +3,7 @@ package main
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joshuasprow/log-viewer/k8s"
+	"github.com/joshuasprow/log-viewer/models/defaults"
 	"github.com/joshuasprow/log-viewer/tui"
 )
 
@@ -11,24 +12,24 @@ func newCronJobJobsModel(
 	cronJob k8s.CronJob,
 	msgCh chan<- tea.Msg,
 ) tea.Model {
-	options := listModelOptions[tui.Job]{
-		showDescription: true,
-		title: renderTitle(
+	options := defaults.ListModelOptions[tui.Job]{
+		ShowDescription: true,
+		Title: renderTitle(
 			cronJob.Namespace,
 			cronJob.Name,
 			"select a job",
 		),
-		onEnter: func(selected tui.Job, msgCh chan<- tea.Msg) {
+		OnEnter: func(selected tui.Job, msgCh chan<- tea.Msg) {
 			msgCh <- cronJobContainersViewMsg{
 				job: selected.Job,
 			}
 		},
-		onEsc: func(msgCh chan<- tea.Msg) {
+		OnEsc: func(msgCh chan<- tea.Msg) {
 			msgCh <- cronJobsViewMsg{
 				namespace: cronJob.Namespace,
 			}
 		},
 	}
 
-	return newListModel(size, options, msgCh)
+	return defaults.NewListModel(size, options, msgCh)
 }

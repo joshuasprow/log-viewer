@@ -1,4 +1,4 @@
-package models
+package defaults
 
 import (
 	"fmt"

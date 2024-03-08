@@ -2,6 +2,7 @@ package main
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/joshuasprow/log-viewer/models/defaults"
 	"github.com/joshuasprow/log-viewer/tui"
 )
 
@@ -10,9 +11,9 @@ func newApisModel(
 	namespace string,
 	msgCh chan<- tea.Msg,
 ) tea.Model {
-	options := listModelOptions[tui.Api]{
-		title: renderTitle(namespace, "select an API"),
-		onEnter: func(selected tui.Api, msgCh chan<- tea.Msg) {
+	options := defaults.ListModelOptions[tui.Api]{
+		Title: renderTitle(namespace, "select an API"),
+		OnEnter: func(selected tui.Api, msgCh chan<- tea.Msg) {
 			switch selected {
 			case tui.ContainersApi:
 				msgCh <- containersViewMsg{
@@ -26,10 +27,10 @@ func newApisModel(
 				}
 			}
 		},
-		onEsc: func(msgCh chan<- tea.Msg) {
+		OnEsc: func(msgCh chan<- tea.Msg) {
 			msgCh <- namespacesViewMsg{}
 		},
 	}
 
-	return newListModel(size, options, msgCh)
+	return defaults.NewListModel(size, options, msgCh)
 }

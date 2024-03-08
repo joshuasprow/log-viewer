@@ -1,4 +1,4 @@
-package models
+package defaults
 
 import (
 	"github.com/charmbracelet/bubbles/list"

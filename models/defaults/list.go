@@ -1,33 +1,32 @@
-package main
+package defaults
 
 import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/joshuasprow/log-viewer/models"
 )
 
-type listModel[ItemType any] struct {
+type ListModel[ItemType any] struct {
 	model   *list.Model
-	options listModelOptions[ItemType]
+	options ListModelOptions[ItemType]
 	msgCh   chan<- tea.Msg
 }
 
-type listModelOptions[ItemType any] struct {
-	onEnter         func(selected ItemType, msgCh chan<- tea.Msg)
-	onEsc           func(msgCh chan<- tea.Msg)
-	showDescription bool
-	title           string
+type ListModelOptions[ItemType any] struct {
+	OnEnter         func(selected ItemType, msgCh chan<- tea.Msg)
+	OnEsc           func(msgCh chan<- tea.Msg)
+	ShowDescription bool
+	Title           string
 }
 
-func newListModel[ItemType any](
+func NewListModel[ItemType any](
 	size tea.WindowSizeMsg,
-	options listModelOptions[ItemType],
+	options ListModelOptions[ItemType],
 	msgCh chan<- tea.Msg,
-) listModel[ItemType] {
-	d := &models.ListItemDelegate{}
-	d.SetShowDescription(options.showDescription)
+) ListModel[ItemType] {
+	d := &ListItemDelegate{}
+	d.SetShowDescription(options.ShowDescription)
 
 	m := list.New([]list.Item{}, d, 0, 0)
 
@@ -35,7 +34,7 @@ func newListModel[ItemType any](
 	m.SetShowStatusBar(false)
 	m.SetSize(size.Width, size.Height)
 	m.SetSpinner(spinner.Dot)
-	m.Title = options.title
+	m.Title = options.Title
 
 	// prevents esc as a quit key
 	m.KeyMap.Quit = key.NewBinding(
@@ -52,13 +51,13 @@ func newListModel[ItemType any](
 		}
 	}
 
-	m.Styles.NoItems = models.ListStyles.NoItems
-	m.Styles.HelpStyle = models.ListStyles.Help
-	m.Styles.PaginationStyle = models.ListStyles.Pagination
-	m.Styles.Title = models.ListStyles.Title
-	m.Styles.TitleBar = models.ListStyles.TitleBar
+	m.Styles.NoItems = ListStyles.NoItems
+	m.Styles.HelpStyle = ListStyles.Help
+	m.Styles.PaginationStyle = ListStyles.Pagination
+	m.Styles.Title = ListStyles.Title
+	m.Styles.TitleBar = ListStyles.TitleBar
 
-	return listModel[ItemType]{
+	return ListModel[ItemType]{
 		model:   &m,
 		options: options,
 
@@ -66,11 +65,11 @@ func newListModel[ItemType any](
 	}
 }
 
-func (m listModel[ItemType]) Init() tea.Cmd {
+func (m ListModel[ItemType]) Init() tea.Cmd {
 	return m.model.StartSpinner()
 }
 
-func (m listModel[ItemType]) Update(
+func (m ListModel[ItemType]) Update(
 	msg tea.Msg,
 ) (
 	tea.Model,
@@ -82,13 +81,13 @@ func (m listModel[ItemType]) Update(
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "esc":
-			if m.options.onEsc != nil {
-				m.options.onEsc(m.msgCh)
+			if m.options.OnEsc != nil {
+				m.options.OnEsc(m.msgCh)
 				return m, nil
 			}
 		case "enter":
-			if m.options.onEnter != nil {
-				m.options.onEnter(m.Selected(), m.msgCh)
+			if m.options.OnEnter != nil {
+				m.options.OnEnter(m.Selected(), m.msgCh)
 				return m, nil
 			}
 		}
@@ -102,10 +101,10 @@ func (m listModel[ItemType]) Update(
 	return m, cmd
 }
 
-func (m listModel[ItemType]) View() string {
+func (m ListModel[ItemType]) View() string {
 	return m.model.View()
 }
 
-func (m listModel[ItemType]) Selected() ItemType {
+func (m ListModel[ItemType]) Selected() ItemType {
 	return m.model.SelectedItem().(ItemType)
 }
